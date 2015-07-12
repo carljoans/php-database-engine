@@ -1,5 +1,5 @@
 <?
-include( dirname(__FILE__)."/DATABASE.php" );
+include( dirname(dirname(__FILE__))."/DATABASE.php" );
 
 $config = array();
 $config['type'] = DATABASE::MYSQL;
@@ -31,7 +31,7 @@ while( $data->fetch(2) ){
 	print $data->id.": ".$data->username."<br>";
 }
 
-print "=======[ 2 ]<br>";
+print "=======[ 3 ]<br>";
 #fetch the rest
 while( $data->fetch() ){
 	print $data->id.": ".$data->username."<br>";

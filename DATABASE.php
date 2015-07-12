@@ -1383,7 +1383,7 @@ class DATABASE {
 		
 	}
 	
-	public static function fetch( $tablename, $sql="", $where="" ){
+	public static function fetch( $tablename, $sql=NULL, $where=NULL ){
 			
 		return self::select( $tablename, $sql, $where, true );
 		
