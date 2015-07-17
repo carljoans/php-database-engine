@@ -1,5 +1,4 @@
 <?
-/* <!-- copyright */
 /*
  * PHP Database Engine
  *
@@ -20,21 +19,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
-/* copyright --> */
 class RESULTSET extends ArrayObject {
 	
 	public $___result = null;
-	public $___fetching = false;
 	public $___n = 0;
 	public $___status = false;
 	public $___limit = -1;
-	public $___ociparse = false;
+	public $___is_oci_ = false;
 	
-	public function __construct( $result, $n, $type, $status, $ociparse=false ) {
+	public function __construct( $result, $n, $type, $status, $is_oci_=false ) {
 		
 		$this->___n = $n;
 		$this->___status = $status;
-		$this->___ociparse = $ociparse;
+		$this->___is_oci_ = $is_oci_;
 		
 		if( $type===DATABASE::FET && $n > 0 ){
 			
@@ -54,9 +51,9 @@ class RESULTSET extends ArrayObject {
 		return $this->___n;
 	}
 	
-	private function getfieldvalue( $value ){
-		$value = ( strtoupper($value) == "NULL" )? NULL : $value ;							
-		return is_resource( $value ) ? stream_get_contents( $value ) : ( is_object($value) && get_class($value) == 'OCI-Lob'  ? $value->read($value->size()) : $value ) ;
+	private function getfieldvalue( $value ){						
+		$value = is_resource( $value ) ? stream_get_contents( $value ) : ( is_object($value) && get_class($value) == 'OCI-Lob'  ? $value->read($value->size()) : $value ) ;
+		return $value;
 	}
     
     public function fetch( $limit=-1 ){
@@ -68,7 +65,7 @@ class RESULTSET extends ArrayObject {
 				return false;
 			}
 				
-			if( !$this->___ociparse ){
+			if( !$this->___is_oci_ ){
 				
 				foreach( $this->___result as $result ){
 					
@@ -92,6 +89,7 @@ class RESULTSET extends ArrayObject {
 					}
 					return true;
 				}
+				oci_free_statement($this->___result);
 				return false;
 			}
 		}

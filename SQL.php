@@ -1,5 +1,4 @@
 <?
-/* <!-- copyright */
 /*
  * PHP Database Engine
  *
@@ -20,7 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
-/* copyright --> */
 class SQL{
 
 	public $__TABLE__ = "";
@@ -28,6 +26,7 @@ class SQL{
 	public $__IS_UPDATE__ = false;
 	public $__IS_INSERT__ = false;
 	public $__IS_DELETE__ = false;
+	public $__IS_VOID__ = false;
 	public $__COLUMNS__ = array();
 	public $__LINKS__ = array();
 	public $__ROW__ = 0;
@@ -57,8 +56,11 @@ class SQL{
 	public $__USE_DB = null;
 	public $__STATEMENT__ = null;
 	public $__VALUES__ = null;
+	public $__SKIP_COMPILE__ = false;
 
-	public function __construct() {}
+	public function __construct( $__TABLE__ = "" ) {
+		$this->__TABLE__ = $__TABLE__;
+	}
 	
 	public function __call($name, $arg){
         if( count($arg) == 1 ){
@@ -72,6 +74,7 @@ class SQL{
 		$this->__IS_DELETE__ = false;
 		$this->__IS_UPDATE__ = false;
 		$this->__IS_INSERT__ = false;
+		$this->__IS_VOID__ = false;
 	}
 	
 	public function setIsDelete(){
@@ -79,6 +82,7 @@ class SQL{
 		$this->__IS_DELETE__ = true;
 		$this->__IS_UPDATE__ = false;
 		$this->__IS_INSERT__ = false;
+		$this->__IS_VOID__ = false;
 	}
 	
 	public function setIsUpdate(){
@@ -86,6 +90,7 @@ class SQL{
 		$this->__IS_DELETE__ = false;
 		$this->__IS_UPDATE__ = true;
 		$this->__IS_INSERT__ = false;
+		$this->__IS_VOID__ = false;
 	}
 	
 	public function setIsInsert(){
@@ -93,6 +98,15 @@ class SQL{
 		$this->__IS_DELETE__ = false;
 		$this->__IS_UPDATE__ = false;
 		$this->__IS_INSERT__ = true;
+		$this->__IS_VOID__ = false;
+	}
+	
+	public function setIsVoid(){
+		$this->__IS_SELECT__ = false;
+		$this->__IS_DELETE__ = false;
+		$this->__IS_UPDATE__ = false;
+		$this->__IS_INSERT__ = false;
+		$this->__IS_VOID__ = true;
 	}
 	
 	public function isSelect(){
@@ -109,6 +123,10 @@ class SQL{
 	
 	public function isInsert(){
 		return $this->__IS_INSERT__;
+	}
+	
+	public function isVoid(){
+		return $this->__IS_VOID__;
 	}
 	
 	public function selectFrom($__TABLE__){
@@ -152,18 +170,24 @@ class SQL{
 	}
 	
 	public function output( $str=false ) {
-		if($this->isSelect()){
-			return $this->select( $str );
+		
+		if( trim($this->__TABLE__) != "" ){
+			if($this->isSelect()){
+				return $this->select( $str );
+			}
+			if($this->isDelete()){
+				return $this->delete( $str );
+			}
+			if($this->isUpdate()){
+				return $this->update( $str );
+			}
+			if($this->isInsert()){
+				return $this->insert( $str );
+			}		
 		}
-		if($this->isDelete()){
-			return $this->delete( $str );
-		}
-		if($this->isUpdate()){
-			return $this->update( $str );
-		}
-		if($this->isInsert()){
-			return $this->insert( $str );
-		}		
+		
+		return ( $str )? $this->__STATEMENT__ : $this ;
+				
 	}
 	
 	public function select( $str=false ) {
@@ -369,7 +393,7 @@ class SQL{
 		
 		$this->__STATEMENT__ = $sql;
 		$this->__VALUES__ = $columnvalues;
-		
+		$this->fix_where();
 		return $this;
 	
 	}
@@ -397,7 +421,6 @@ class SQL{
 			}
 			
 		}
-		
 		$primaryKey_str = "";
 		$primaryKeyValue_str = "";	
 					
@@ -421,7 +444,7 @@ class SQL{
 			if( !$primaryKeySet ){
 				
 				$this->__INSERTID__ = $DBOVAR::SEQ_NEXT( $this->tablename() );	
-				$insert_columns[":".$primaryKey] = $this->__INSERTID__;
+				$insert_columnvalues[":".$primaryKey] = $this->__INSERTID__;
 				$primaryKeyValue = ":".$primaryKey;
 				$primaryKeyValue_str = $primaryKeyValue.",";
 				$primaryKey_str = $primaryKey.",";
@@ -438,6 +461,8 @@ class SQL{
 		
 		$this->__STATEMENT__ = $sql;
 		$this->__VALUES__ = $insert_columnvalues;
+		$this->fix_where();
+		$this->check_string_literal();
 		
 		return $this;
 			
@@ -490,6 +515,7 @@ class SQL{
 			$sql = "DELETE FROM ".$DBOVAR::TF($this->__TABLE__).$where ;
 			$this->__STATEMENT__ = $sql;
 			$this->__VALUES__ = $columnvalues;
+			$this->fix_where();
 			
 		}
 		
@@ -555,8 +581,122 @@ class SQL{
 			$sql = "UPDATE ".$DBOVAR::TF($this->__TABLE__)." SET ".implode( ", ", $update_columns )." ".$where ;
 			$this->__STATEMENT__ = $sql;
 			$this->__VALUES__ = $update_columnvalues;
+			$this->fix_where();
+			$this->check_string_literal();
 		}
 			
+	}
+	
+	public function lastInsertId(){
+		return $this->__INSERTID__;
+	}
+	
+	public function check_string_literal(){
+		
+		$str_sql = $this->__STATEMENT__;
+		$values = $this->__VALUES__;
+		
+		## ORACLE VARS
+		$declaretxt = array();
+		$valuestxt = array();
+		$valuesbound = array();
+		$replacetxt = array();
+		$subvaluestxt = array();
+		
+		## MYSQL VARS
+		//$declaretxt = array();
+		//$valuestxt = array();
+		//$valuesbound = array();
+		//$replacetxt = array();
+		//$subvaluestxt = array();
+		
+		foreach( $values as $bindname=>$bindvalue ){
+	
+			if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::MYSQL ){
+				
+				if( strlen( $bindvalue ) > 65535 ){
+					## TODO
+				}						
+				
+			}
+			
+			if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
+				
+				if( strlen( $bindvalue ) > 4000 ){					
+					
+					$bindbasename = "BIND".ltrim( $bindname, ":" )."0";
+					$declaretxt[] = $bindbasename;
+					$replacetxt[$bindname] = $bindbasename;
+					
+					if( strlen( $bindvalue ) > 30000 ){
+						
+						$subvaluestxt_ = array();
+						
+						$a = 1;
+						$substr = "";
+						for( $i=0; $i<strlen( $bindvalue ); $i++ ){
+							
+							$substr .= substr( $bindvalue, $i, 1 );
+							if( $i>0 && $i%30000==0 ){
+								
+								$valuestxt[ ":".$bindbasename.$a ] = $substr;
+								$subvaluestxt_[] = $bindbasename.$a;
+								$declaretxt[] = $bindbasename.$a;
+								
+								$substr = "";
+								$a++;
+								
+							}
+							
+						}
+						
+						$subvaluestxt[ ":".$bindbasename ] = implode( " || ", $subvaluestxt_ );
+						
+					}else{
+						
+						$valuestxt[ ":".$bindbasename ] = $bindvalue;
+						
+					}							
+					
+				}	
+				
+			}
+			
+		}
+		
+		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE && !empty( $replacetxt ) ){
+			
+			$__sql = "DECLARE\n".
+			implode( " CLOB;\n", $declaretxt )." CLOB;\n".
+			"BEGIN\n";
+			
+			foreach( $declaretxt as $txt ){
+				$__sql .=  $txt." := :".$txt.";\n";
+			}
+			
+			if( !empty( $subvaluestxt ) ){
+				foreach( $subvaluestxt as $bindvar=>$bindval ){
+					$__sql .=  $bindvar." := ".$bindval.";\n";
+				}	
+			}
+			
+			foreach( $replacetxt as $bindname=>$bindbasename ){
+				unset( $values[$bindname] );
+				$str_sql = str_replace( $bindname, $bindbasename, $str_sql );
+			}
+			
+			$values = array_merge( $subvaluestxt, $valuestxt );
+			
+			$__sql .=  $str_sql."\n";
+			$__sql .= ";\nEND;";
+			
+			$str_sql = $__sql;
+			
+		}
+		
+		$this->__STATEMENT__ = $str_sql;
+		$this->__VALUES__ = $values;
+		
 	}
 	
 	public function prepared(){
@@ -596,11 +736,6 @@ class SQL{
         
         return $this->output($str);
 		
-	}
-	
-	public function startswith( $str, $prefix ){
-		//TODO
-		return false;
 	}
 	
 	private function get_database_data(){
@@ -890,10 +1025,12 @@ class SQL{
 		$this->__JOINONADD__[$tablename] = $joinType." JOIN ".$DBOVAR::NF($tablename)." ON ".$join;
 	}
 	
-	public function createLink( $table, $column, $linkto ){
+	public function createLink( $table, $column=null, $linkto=null ){
 		
-		if( $table instanceof TABLE  ){
+		if( $table instanceof SQL  ){
 			$this->__LINKS__[$linkto] = $table->__TABLE__.":".$column;
+		}elseif( is_array( $table ) ){
+			$this->__LINKS__ = $table;
 		}
 		
 	}
@@ -901,7 +1038,7 @@ class SQL{
 	public function joinAdd( $table, $joinType='INNER', $tableAs="", $columnAs="" ){	
 		$DBOVAR = $this->__USE_DB;		
 		
-		if( $table instanceof TABLE  ){	
+		if( $table instanceof SQL  ){	
 			
 			$link_found = false;
 			$table->selectAs( $tableAs );
@@ -999,7 +1136,7 @@ class SQL{
 		
 					$linked = $link;
 		
-					if( is_array( $linked ) || preg_match( '/this::/i', $linked ) ){
+					if( is_array( $linked ) ){
 						
 						continue;					
 						
@@ -1119,6 +1256,51 @@ class SQL{
 			}
 		}
 		return $is_function;
+	}
+	
+	public function compiled_str( $sql, $void=false ) {
+		
+		$this->setIsVoid();
+		
+		if( !$void ){
+			
+			if( DATABASE::startswith( $sql, "SELECT" ) ){
+				$this->setIsSelect();
+			}
+			
+			if( DATABASE::startswith( $sql, "UPDATE" ) ){
+				$this->setIsUpdate();
+			}
+			
+			if( DATABASE::startswith( $sql, "DELETE" ) ){
+				$this->setIsDelete();
+			}
+			
+			if( DATABASE::startswith( $sql, "INSERT" ) ){
+				$this->setIsInsert();
+			}
+			
+		}
+		
+		$this->__STATEMENT__ = $sql;
+		$this->fix_where();
+		
+	}
+	
+	public function fix_where(){		
+		
+		$str = $this->__STATEMENT__;
+		preg_match_all( '/WHERE(\s+)1(\s+)AND/i', $str, $matches );
+		
+		if( count($matches) > 0 ){
+			if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
+				foreach ( $matches[0] as $i=>$match ) {
+					$str = str_replace( $matches[0][$i], "WHERE", $str );
+				}
+			}
+		}
+		$this->__STATEMENT__ = $str;
+		
 	}
 
 }

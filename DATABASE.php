@@ -1,5 +1,4 @@
 <?
-/* <!-- copyright */
 /*
  * PHP Database Engine
  *
@@ -20,7 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
-/* copyright --> */
 
 include( dirname(__FILE__)."/RESULTSET.php" );
 include( dirname(__FILE__)."/SQL.php" );
@@ -34,6 +32,7 @@ class DATABASE {
 	const PUT = 3;
 	const INS = 3;
 	const FET = 4;
+	const VOID = 5;
 
 	const TRA = 1;
 	const COM = 2;
@@ -57,6 +56,7 @@ class DATABASE {
 	const DAYFULL = 10;
 	const WEEKS = 11;
 	
+	public static $LOGCALLER = null;
 	public static $CASESENSITIVE = false;
 	public static $PREFIX = "";
 	public static $USE_PDO = true;
@@ -64,10 +64,6 @@ class DATABASE {
 	public static $transaction = array();
 	public static $dbtype = "mysql";
 	public static $make_table = array();
-	public static $autovalue = array();
-	public static $linkeddata = array();
-	public static $t = array();
-	public static $action = array();
 	
 	public static $HOST = "";
 	public static $DB = "";
@@ -78,7 +74,8 @@ class DATABASE {
 	public static $TMP = "";
 	
 	public static $ERROR = "";
-	public static $LASTQUERY = "";
+	public static $LASTQUERY = array();
+	public static $LASTQUERYTIME = array();
 	
 	public static $defaults = array();
 	public static $functions = array(
@@ -116,6 +113,8 @@ class DATABASE {
 			$config['usePDO'] = ( isset($config['usePDO']) )? $config['usePDO'] : true ;
 			$config['casesensitive'] = ( isset($config['casesensitive']) )? $config['casesensitive'] : true ;
 			$config['tmp'] = ( isset($config['tmp']) )? $config['tmp'] : "/tmp" ;
+			$config['logcaller'] = ( isset($config['logcaller']) )? $config['logcaller'] : null ;
+			$config['prefix'] = ( isset($config['prefix']) )? $config['prefix'] : null ;
 			self::$databases[$name] = $config;
 			self::load_class($name);
 		}
@@ -161,6 +160,8 @@ class DATABASE {
 		self::$USE_PDO = self::$databases[self::$database_in_use]['usePDO'];
 		self::$CASESENSITIVE = self::$databases[self::$database_in_use]['casesensitive'];
 		self::$TMP = self::$databases[self::$database_in_use]['tmp'];
+		self::$LOGCALLER = self::$databases[self::$database_in_use]['logcaller'];
+		self::$PREFIX = self::$databases[self::$database_in_use]['prefix'];
 		
 		self::setob();
 		
@@ -288,13 +289,9 @@ class DATABASE {
 	}
 	
 	public static function log_error($class){
-		/*handle how your errors are logged 
-		 * flat file
-		 * direct output
-		 * etc
-		*/
-		print_r(self::$ERROR);
-		exit;
+		if( self::$LOGCALLER != null ){
+			call_user_func( self::$LOGCALLER, __CLASS__ );
+		}
 	}
 	
 	public static function oci8_debug( $handle, $text="" ){
@@ -383,6 +380,8 @@ class DATABASE {
     
     public static function query( $str_sql, $expect=1, $transaction=NULL, $ob=NULL ) {
 		
+		self::$LASTQUERYTIME[md5($str_sql)]["start"] = microtime(true);
+		
 		self::use_database();
 		self::$ERROR = "";
 		
@@ -410,12 +409,16 @@ class DATABASE {
 						
 						if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
 							$status = ( $expect===self::DEL || $expect===self::UPD )? $result : true ;
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, $result->rowCount(), self::NUM, $status );
 						}else if( $expect===self::PUT || $expect===self::INS ){
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, self::lastInsertId(), self::INS, true );
 						}else if( $expect===self::FET ){
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( $result->fetch(), $result->rowCount(), self::FET, true );
 						}else{
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( $result, $result->rowCount(), self::ALL, true );
 						}
 						
@@ -437,15 +440,19 @@ class DATABASE {
 					if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
 						$status = ( $expect===self::DEL || $expect===self::UPD )? $result : true ;
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( null, $result->rowCount(), self::NUM, $status );
 					}else if( $expect===self::PUT || $expect===self::INS ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( null, self::lastInsertId(), self::INS, true );
 					}else if( $expect===self::FET ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( $result->fetch(), $result->rowCount(), self::FET, true );
 					}else{
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( $result, $result->rowCount(), self::ALL, true );
 					}
 					
@@ -467,6 +474,17 @@ class DATABASE {
 				
 				if( self::$dbtype == self::ORACLE ){
 					
+					$rowcount = 1;
+					
+					if( $expect===self::ALL ){
+						$query = self::sql();
+						$query->compiled_str( $str_sql );
+						if( $query->isSelect() ){
+							$count = self::query( "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtbl", self::FET, $transaction );
+							$rowcount = $count->rowcount;
+						}
+					}
+					
 					$parse = oci_parse( self::$ob[self::$database_in_use], $str_sql );
 					
 					foreach( $transaction as $bindkey=>$bindvalue ){
@@ -478,18 +496,20 @@ class DATABASE {
 					if( $execute ){
 						
 						if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
-							$status = ( $expect===self::DEL || $expect===self::UPD )? $result : true ;
-							return new RESULTSET( null, oci_num_rows($parse), self::NUM, $status );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( null, oci_num_rows($parse), self::NUM, true, true );
 						}else if( $expect===self::PUT || $expect===self::INS ){
-							return new RESULTSET( null, self::lastInsertId(), self::INS, true );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( null, self::lastInsertId(), self::INS, true, true );
 						}else if( $expect===self::FET ){
-							return new RESULTSET( oci_fetch_array( $parse ), oci_num_rows($parse), self::FET, true );
-						}else{
+							$result = oci_fetch_array( $parse );
 							oci_free_statement($parse);
-							return new RESULTSET( $parse, oci_num_rows($parse), self::ALL, true );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( $result, 1, self::FET, true, true );
+						}else{
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( $parse, $rowcount, self::ALL, true, true );
 						}
-						
-						
 						
 					}else{						
 						
@@ -523,6 +543,17 @@ class DATABASE {
 				
 				if( self::$dbtype == self::ORACLE ){
 					
+					$rowcount = 1;
+					
+					if( $expect===self::ALL ){
+						$query = self::sql();
+						$query->compiled_str( $str_sql );
+						if( $query->isSelect() ){
+							$count = self::query( "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtbl", self::FET );
+							$rowcount = $count->rowcount;
+						}
+					}
+					
 					$parse = oci_parse( self::$ob[self::$database_in_use], $str_sql );
 					
 					$execute = ( isset(self::$transaction[self::$database_in_use]) && self::$transaction[self::$database_in_use] ) ? oci_execute( $parse, OCI_NO_AUTO_COMMIT ) : oci_execute($parse) ;		
@@ -530,15 +561,19 @@ class DATABASE {
 					if( $execute ){
 						
 						if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
-							$status = ( $expect===self::DEL || $expect===self::UPD )? $result : true ;
-							return new RESULTSET( null, oci_num_rows($parse), self::NUM, $status );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( null, oci_num_rows($parse), self::NUM, true, true );
 						}else if( $expect===self::PUT || $expect===self::INS ){
-							return new RESULTSET( null, self::lastInsertId(), self::INS, true );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( null, self::lastInsertId(), self::INS, true, true );
 						}else if( $expect===self::FET ){
-							return new RESULTSET( oci_fetch_array( $parse ), oci_num_rows($parse), self::FET, true );
-						}else{
+							$result = oci_fetch_array( $parse );
 							oci_free_statement($parse);
-							return new RESULTSET( $parse, oci_num_rows($parse), self::ALL, true, true );
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( $result, 1, self::FET, true, true );
+						}else{
+							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							return new RESULTSET( $parse, $rowcount, self::ALL, true, true );
 						}
 						
 					}else{
@@ -607,10 +642,10 @@ class DATABASE {
 		return self::nameformat($name,true);
 	}	
 	
-	public static function sql(){
+	public static function sql($tablename=""){
 		
 		self::use_database();
-		$sql = new SQL;
+		$sql = new SQL($tablename);
 		$sql->use_database( self::$database_in_use );
 		return $sql;
 		
@@ -1175,15 +1210,17 @@ class DATABASE {
 	
 	public static function SequenceValue( $table, $next=false, $sync=false ){	
 		
-		$tbl = new TABLE($table,self::$database_in_use); #### --- missing class
 		$sql = "select last_number from user_sequences where sequence_name='".self::TF(strtoupper($table)).self::SEQ."'";
 		
-		$tbl->query( $sql );
+		$query = self::sql();
+		$query->compiled_str( $sql );
+		$query = self::exec_statement( $query );
+		$query->fetch();
 		$last_number = 0;
 		
-		if( $tbl->N > 0 && !$tbl->hasError() ){
+		if( $query->count() > 0 ){
 			
-			$last_number = $tbl->last_number;
+			$last_number = $query->last_number;
 			
 			if( $sync ){
 				
@@ -1191,9 +1228,8 @@ class DATABASE {
 				
 				if( $last_number < $max ){
 					
-					$increment = $max - $last_number;
+					$increment = $max - $last_number;					
 					
-					$tbl = new TABLE($table,self::$database_in_use); #### --- missing class
 					$sql = "declare
 								max_id number;
 								cur_seq number;
@@ -1206,12 +1242,19 @@ class DATABASE {
 								end loop;
 									
 							end;";
-					$tbl->query( $sql );
 					
-					$tbl = new TABLE($table,self::$database_in_use); #### --- missing class
+					
+					$query = self::sql();
+					$query->compiled_str( $sql, true );
+					$query = self::exec_statement( $query );
+					
 					$sql = "select last_number from user_sequences where sequence_name='".self::TF(strtoupper($table)).self::SEQ."'";
-					$tbl->query( $sql );
-					$last_number = $tbl->last_number;
+		
+					$query = self::sql();
+					$query->compiled_str( $sql );
+					$query = self::exec_statement( $query );
+					$query->fetch();
+					$last_number = $query->last_number;
 				
 				}
 				
@@ -1219,10 +1262,12 @@ class DATABASE {
 			
 			if( $next ){
 				
-				$tbl = new TABLE($table,self::$database_in_use); #### --- missing class
 				$sql = "SELECT ".self::TF($table).self::SEQ.".nextval AS last_number FROM dual";
-				$tbl->query( $sql );
-				$last_number = $tbl->last_number;
+				$query = self::sql();
+				$query->compiled_str( $sql, true );
+				$query = self::exec_statement( $query );
+				$query->fetch();
+				$last_number = $query->last_number;
 				
 			}			
 			
@@ -1240,12 +1285,12 @@ class DATABASE {
 				
 			$sql = "SELECT MAX(".$id.") AS MAXID FROM ".self::TF($table)."";
 			
-			$tbl->query( $sql );
+			$tbl = self::query( $sql, self::FET );
 			return $tbl->MAXID;
 			
 		}
 		
-		return 1;
+		return 0;
 		
 	}
 	
@@ -1269,7 +1314,7 @@ class DATABASE {
 			
 		}
 		
-		$tbl = self::query( $sql );
+		$tbl = self::query( $sql, self::VOID );
 		$tbl->fetch();
 		$key = $tbl->Field;
 		return $key;	
@@ -1306,18 +1351,23 @@ class DATABASE {
 	}
 	
 	public static function interpolateQuery( $query, $params ) {
+		
 		$keys = array();
-
+		$id = md5($query);
 		# build a regular expression for each parameter
 		foreach ($params as $key => $value) {
 			$query = str_replace( $key, "'".$params[$key]."'", $query );
 		}
 
-		self::$LASTQUERY = $query;
+		self::$LASTQUERY[$id] = $query;
+		
 	}
 	
 	public static function exec_prepared( $sql ){
 		$sql->output();
+		if($sql->isVoid()){
+			return self::query( $sql->prepared(), self::VOID, $sql->values() );
+		}
 		if($sql->isSelect()){
 			return self::query( $sql->prepared(), self::ALL, $sql->values() );
 		}
@@ -1336,6 +1386,9 @@ class DATABASE {
 	}
 	
 	public static function exec_statement( $sql ){
+		if($sql->isVoid()){
+			return self::query( $sql->output_str(), self::VOID );
+		}
 		if($sql->isSelect()){
 			return self::query( $sql->output_str(), self::ALL );
 		}
@@ -1353,12 +1406,25 @@ class DATABASE {
 		}
 	}
 	
-	public static function count( $sql ){
+	public static function count( $sql, $countWhat = false, $whereAddOnly = false, $str = false ){
 		
-		$sql->count();
-		$sql = self::query( $sql->prepared(), self::FET, $sql->values() );
+		$sql->count( $countWhat, $whereAddOnly, $str );
+		if( $str ){
+			$sql = self::query( $sql->prepared(), self::FET, $sql->values() );
+		}else{
+			$sql = self::query( $sql->prepared(), self::FET );
+		}
 		return $sql->rowcount;
 		
+	}
+	
+	public static function startswith( $str, $prefix ){
+		return strpos( $str, $prefix ) === 0;
+	}
+	
+	public static function endswith( $str, $suffix ){
+		$pos = strlen( $str ) - strlen( $suffix );
+		return strrpos( $str, $suffix ) == $pos;
 	}
 	
 	##### SIMPLE FUNCTIONS FOR QUICK TESTING
