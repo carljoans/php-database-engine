@@ -377,6 +377,18 @@ class DATABASE {
 		return 0;
 		
 	}
+	
+	public static function getrowcount( $str_sql, $bindings=NULL ){
+		$rowcount = 1;
+		$query = self::sql();
+		$query->compiled_str( $str_sql );
+		if( $query->isSelect() ){
+			$str_sql = "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtblcount";
+			$count = self::query( $str_sql, self::FET, $bindings );
+			$rowcount = $count->rowcount;
+		}
+		return $rowcount;
+	}
     
     public static function query( $str_sql, $expect=1, $transaction=NULL, $ob=NULL ) {
 		
@@ -403,6 +415,12 @@ class DATABASE {
 					
 					self::interpolateQuery( $str_sql, $transaction );
 					
+					$rowcount = 1;
+					
+					if( $expect===self::ALL && ( self::$dbtype == self::SQLITE || self::$dbtype == self::ORACLE ) ){
+						$rowcount = self::getrowcount( $str_sql, $transaction );
+					}
+					
 					$result = self::$ob[self::$database_in_use]->prepare( $str_sql );
 					
 					if( $result->execute( $transaction ) ){
@@ -416,10 +434,13 @@ class DATABASE {
 							return new RESULTSET( null, self::lastInsertId(), self::INS, true );
 						}else if( $expect===self::FET ){
 							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
-							return new RESULTSET( $result->fetch(), $result->rowCount(), self::FET, true );
+							return new RESULTSET( $result->fetch(), 1, self::FET, true );
 						}else{
 							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
-							return new RESULTSET( $result, $result->rowCount(), self::ALL, true );
+							if( self::$dbtype != self::SQLITE && self::$dbtype != self::ORACLE ){
+								$rowcount = $result->rowCount();
+							}
+							return new RESULTSET( $result, $rowcount, self::ALL, true );
 						}
 						
 					}
@@ -437,23 +458,32 @@ class DATABASE {
 					
 					self::interpolateQuery( $str_sql, array() );
 					
+					$rowcount = 1;
+					
+					if( $expect===self::ALL && ( self::$dbtype == self::SQLITE || self::$dbtype == self::ORACLE ) ){
+						$rowcount = self::getrowcount( $str_sql, $transaction );
+					}
+					
 					if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
 						$status = ( $expect===self::DEL || $expect===self::UPD )? $result : true ;
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( null, $result->rowCount(), self::NUM, $status );
 					}else if( $expect===self::PUT || $expect===self::INS ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( null, self::lastInsertId(), self::INS, true );
 					}else if( $expect===self::FET ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
-						return new RESULTSET( $result->fetch(), $result->rowCount(), self::FET, true );
+						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						return new RESULTSET( $result->fetch(), 1, self::FET, true );
 					}else{
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
-						return new RESULTSET( $result, $result->rowCount(), self::ALL, true );
+						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						if( self::$dbtype != self::SQLITE && self::$dbtype != self::ORACLE ){
+							$rowcount = $result->rowCount();
+						}		
+						return new RESULTSET( $result, $rowcount, self::ALL, true );
 					}
 					
 				}
@@ -477,12 +507,7 @@ class DATABASE {
 					$rowcount = 1;
 					
 					if( $expect===self::ALL ){
-						$query = self::sql();
-						$query->compiled_str( $str_sql );
-						if( $query->isSelect() ){
-							$count = self::query( "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtbl", self::FET, $transaction );
-							$rowcount = $count->rowcount;
-						}
+						$rowcount = self::getrowcount( $str_sql, $transaction );
 					}
 					
 					$parse = oci_parse( self::$ob[self::$database_in_use], $str_sql );
@@ -546,12 +571,7 @@ class DATABASE {
 					$rowcount = 1;
 					
 					if( $expect===self::ALL ){
-						$query = self::sql();
-						$query->compiled_str( $str_sql );
-						if( $query->isSelect() ){
-							$count = self::query( "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtbl", self::FET );
-							$rowcount = $count->rowcount;
-						}
+						$rowcount = self::getrowcount( $str_sql, $transaction );
 					}
 					
 					$parse = oci_parse( self::$ob[self::$database_in_use], $str_sql );
@@ -858,7 +878,7 @@ class DATABASE {
 		self::use_database();
 		$item = ( $field )? self::NF($item) : "'".$item."'" ;
 		
-		if( self::$dbtype == self::MYSQL ){
+		if( self::$dbtype == self::MYSQL || self::$dbtype == self::SQLITE ){
 			$to = ( $to > 0 )? ", ".$to."" : "" ;
 			return "SUBSTR( ".$item.", ".$from."".$to." )";
 		}
@@ -1039,7 +1059,7 @@ class DATABASE {
 	}
 	
 	// mysql's CONCAT(User.name, ' ', User.surname)
-	// usage DBO::concat( DBO::TF("User.name"), ' ', DBO::TF("User.surname") )
+	// usage DBO::concat( DBO::TF("User.name"), "' '", DBO::TF("User.surname") )
 	
 	public static function concat(){
 		
@@ -1054,7 +1074,7 @@ class DATABASE {
 			$func = "CONCAT";
 		}
 		
-		if( self::$dbtype == self::ORACLE ){
+		if( self::$dbtype == self::ORACLE || self::$dbtype == self::SQLITE ){
 			$concat = " || ";
 		}
 		
@@ -1065,14 +1085,14 @@ class DATABASE {
 		
 	}
 	
-	// MySQL ISNULL(Table.column,retunvalue)
-	// usage DBO::isnull()."(Table.column,retunvalue)"
+	// MySQL IFNULL(Table.column,retunvalue)
+	// usage DBO::ifnull()."(Table.column,retunvalue)"
 	
-	public static function isnull($NOT=""){
+	public static function ifnull($NOT=""){
 		
 		self::use_database();
-		if( self::$dbtype == self::MYSQL ){
-			return "ISNULL";
+		if( self::$dbtype == self::MYSQL || self::$dbtype == self::SQLITE ){
+			return "IFNULL";
 		}
 		
 		if( self::$dbtype == self::ORACLE ){
@@ -1088,6 +1108,10 @@ class DATABASE {
 		
 		$NOT = ( $NOT )? "NOT" : "" ;
 		
+		if( self::$dbtype == self::SQLITE ){
+			return ""; ### todo
+		}
+		
 		if( self::$dbtype == self::MYSQL ){
 			return "".$column." ".$NOT." REGEXP '".$regexp."'";
 		}
@@ -1098,19 +1122,58 @@ class DATABASE {
 		
 	}
 	
-	public static function ifthen( $condition, $outcome1, $outcome2 ){
+	/*
+	 * Accepts 3 mandatory args as strings DBO::ifthen( $when, $then, $else )
+	 * or
+	 * Accepts 2 args as 
+	 * $whenthen = array();
+	 * $whenthen[] = array( $when1, $then1 );
+	 * $whenthen[] = array( $when2, $then2 );
+	 * ...
+	 * $else as optional
+	 * DBO::ifthen( $whenthen [, $else] )
+	 * */
+	
+	public static function ifthen(){
 		
 		self::use_database();
+		
+		$endcase = "";
+		$whenthen = array();
+		$else = "";
+		$args = func_get_args();
+		
 		if( self::$dbtype == self::MYSQL ){
-			return "IF(".$condition.", ".$outcome1.", ".$outcome2.")";
+			$endcase = " CASE";
 		}
 		
-		if( self::$dbtype == self::ORACLE ){
-			return "CASE 
-					  WHEN ".$condition." THEN ".$outcome1."
-					  ELSE ".$outcome2."
-					END";
+		if( isset($args[0]) && is_array($args[0]) && !empty($args[0]) ){
+			
+			foreach( $args[0] as $arg ){
+				if( is_array($arg) && count($arg) == 2 ){
+					$whenthen[] = "WHEN ".$arg[0]." THEN ".$arg[1];
+				}
+			}
+			
+			if( isset($args[1]) && is_string($args[1]) ){
+				$else = "ELSE ".$args[1]."";
+			}
+			
+		}elseif( count($args) == 3 && is_string($args[0]) && is_string($args[1]) && is_string($args[2]) ){
+			
+			$whenthen[] = "WHEN ".$args[0]." THEN ".$args[1];
+			$else = "ELSE ".$args[2]."";
+			
 		}
+		
+		if( !empty($whenthen) ){
+			return "CASE 
+					  ".implode("\n",$whenthen)."
+					  ".$else."
+					END".$endcase;
+		}
+		
+		return "";
 		
 	}
 	
@@ -1133,7 +1196,7 @@ class DATABASE {
 			
 			$count = $from;
 			
-			if( self::$dbtype == self::MYSQL ){
+			if( self::$dbtype == self::MYSQL || self::$dbtype == self::SQLITE ){
 				return "LIMIT ".$count;
 			}
 			
@@ -1145,7 +1208,7 @@ class DATABASE {
 		
 		if( $count > 0 ){
 			
-			if( self::$dbtype == self::MYSQL ){
+			if( self::$dbtype == self::MYSQL || self::$dbtype == self::SQLITE ){
 				return "LIMIT ".$from.", ".$count;
 			}
 			
@@ -1161,7 +1224,7 @@ class DATABASE {
 	public static function formatlimit( $sql, $count = array( "from"=>0, "count"=>0 ) ){
 		
 		self::use_database();
-		if( self::$dbtype == self::MYSQL ){
+		if( self::$dbtype == self::MYSQL || self::$dbtype == self::SQLITE ){
 			return $sql." ".self::limit( $count['from'], $count['count'] );
 		}
 		
@@ -1170,9 +1233,9 @@ class DATABASE {
 			if( strtolower( substr( trim($sql), 0, strlen("select ") ) ) == "select " ){
 				$sql1 = trim($sql);
 				
-				if( !preg_match( '/A\.\*/', $sql1 ) ){
+				if( !preg_match( '/DBTBLLIMIT\.\*/', $sql1 ) ){
 					if( preg_match( '/GROUP BY/', $sql1 ) ){
-						$sql1 = "SELECT A.* FROM( ".$sql1." ) A";
+						$sql1 = "SELECT DBTBLLIMIT.* FROM( ".$sql1." ) DBTBLLIMIT";
 					}
 				}
 				
@@ -1298,6 +1361,10 @@ class DATABASE {
 		
 		self::use_database();
 		
+		if( self::$dbtype == self::SQLITE ){
+			$sql = "PRAGMA table_info(".self::TF($table).")";
+		}
+		
 		if( self::$dbtype == self::MYSQL ){
 			$sql = "SHOW COLUMNS FROM ".self::TF($table)." WHERE `Key` = 'PRI'";
 		}
@@ -1315,8 +1382,22 @@ class DATABASE {
 		}
 		
 		$tbl = self::query( $sql, self::VOID );
-		$tbl->fetch();
-		$key = $tbl->Field;
+		$key = "";
+		
+		if( self::$dbtype == self::SQLITE ){
+			while( $tbl->fetch() ){
+				if( $tbl->pk == '1' ){
+					$key = $tbl->name;
+					break;
+				}
+			}
+		}
+		
+		if( self::$dbtype == self::MYSQL || self::$dbtype == self::ORACLE ){
+			$tbl->fetch();
+			$key = $tbl->Field;
+		}
+		
 		return $key;	
 		
 	}
@@ -1328,7 +1409,7 @@ class DATABASE {
 			return str_replace( "'", "\\'", $value );
 		}
 		
-		if( self::$dbtype == self::ORACLE ){
+		if( self::$dbtype == self::ORACLE || self::$dbtype == self::SQLITE ){
 			return str_replace( "'", "''", $value );
 		}	
 		
@@ -1425,34 +1506,6 @@ class DATABASE {
 	public static function endswith( $str, $suffix ){
 		$pos = strlen( $str ) - strlen( $suffix );
 		return strrpos( $str, $suffix ) == $pos;
-	}
-	
-	##### SIMPLE FUNCTIONS FOR QUICK TESTING
-	
-	public static function select( $tablename, $sql=NULL, $where=NULL, $fetch=false ){
-		
-		$whereonly = ( $where!=NULL );
-		$sqlonly = ( !$whereonly && $sql!=NULL );
-		
-		if( $sqlonly ){
-			$__sql = $sql;		
-		}else if( $whereonly ){
-			$__sql = "SELECT * FROM ".self::TF($tablename)." ".$where;
-		}else{
-			$__sql = "SELECT * FROM ".self::TF($tablename);	
-		}
-		
-		# query() returns one row assoc array if $fetch
-		# query() returns returns result set if not fetch. use foreach to loop through results.
-		
-		return self::query( $__sql, (( $fetch )? self::FET : self::ALL ) );
-		
-	}
-	
-	public static function fetch( $tablename, $sql=NULL, $where=NULL ){
-			
-		return self::select( $tablename, $sql, $where, true );
-		
 	}
 	
 }

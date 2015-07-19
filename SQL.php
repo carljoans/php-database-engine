@@ -1262,28 +1262,52 @@ class SQL{
 		
 		$this->setIsVoid();
 		
-		if( !$void ){
+		if( is_bool($void) ){
 			
-			if( DATABASE::startswith( $sql, "SELECT" ) ){
+			if( !$void ){
+				
+				if( DATABASE::startswith( $sql, "SELECT" ) ){
+					$this->setIsSelect();
+				}
+				
+				if( DATABASE::startswith( $sql, "UPDATE" ) ){
+					$this->setIsUpdate();
+				}
+				
+				if( DATABASE::startswith( $sql, "DELETE" ) ){
+					$this->setIsDelete();
+				}
+				
+				if( DATABASE::startswith( $sql, "INSERT" ) ){
+					$this->setIsInsert();
+				}
+				
+			}
+			
+		}elseif( is_int($void) ){
+			
+			if( $void === DATABASE::ALL ){
 				$this->setIsSelect();
 			}
 			
-			if( DATABASE::startswith( $sql, "UPDATE" ) ){
+			if( $void === DATABASE::UPD ){
 				$this->setIsUpdate();
 			}
 			
-			if( DATABASE::startswith( $sql, "DELETE" ) ){
+			if( $void === DATABASE::DEL ){
 				$this->setIsDelete();
 			}
 			
-			if( DATABASE::startswith( $sql, "INSERT" ) ){
+			if( $void === DATABASE::INS ){
 				$this->setIsInsert();
 			}
 			
 		}
 		
+		
 		$this->__STATEMENT__ = $sql;
 		$this->fix_where();
+		return $this;
 		
 	}
 	

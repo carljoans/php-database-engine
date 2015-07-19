@@ -50,6 +50,10 @@ class RESULTSET extends ArrayObject {
     public function count(){
 		return $this->___n;
 	}
+    
+    public function insertid(){
+		return $this->___n;
+	}
 	
 	private function getfieldvalue( $value ){						
 		$value = is_resource( $value ) ? stream_get_contents( $value ) : ( is_object($value) && get_class($value) == 'OCI-Lob'  ? $value->read($value->size()) : $value ) ;

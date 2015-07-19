@@ -10,6 +10,9 @@ $config['password'] = "dbpassword";
 $config['casesensitive'] = true; #optional - default true
 $config['usePDO'] = true; #optional - default true, for Oracle use false PDO::OCI is unstable
 $config['tmp'] = "/tmp"; #optional - default "/tmp" directory must be writable and accessible by php/apache
+$config['logcaller'] = null; #optional - default null. the function used to handle errors.
+## eg. "handler" or "Myclass::handler" by default no error output.
+$config['prefix'] = ""; #optional - default null. the prefix used for all tables.
 
 DATABASE::register_database( "MYSQLDB",  $config );
 
