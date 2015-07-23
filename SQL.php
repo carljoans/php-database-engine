@@ -28,6 +28,7 @@ class SQL{
 	public $__IS_DELETE__ = false;
 	public $__IS_VOID__ = false;
 	public $__COLUMNS__ = array();
+	public $__AVAILABLE_COLUMNS__ = array();
 	public $__LINKS__ = array();
 	public $__ROW__ = 0;
 	public $__ROWARRAY__ = array();
@@ -167,6 +168,7 @@ class SQL{
 	
 	public function use_database($__USE_DB) {
 		$this->__USE_DB = $__USE_DB;
+		$this->get_database_data();
 	}
 	
 	public function output( $str=false ) {
@@ -306,7 +308,7 @@ class SQL{
 						foreach( $__cols as $column ){
 							$column = trim( $column );
 							$column = strtolower(str_replace( $this->__TABLE__.".", "", $column )); 
-							foreach( $this->__COLUMNS__ as $col ){
+							foreach( $this->__AVAILABLE_COLUMNS__ as $col ){
 								$col = strtolower($col);
 								if( $col == $column || $this->startswith( $column, $col." " ) ){
 									$colcount++;
@@ -317,7 +319,7 @@ class SQL{
 					}else{
 						$column = trim( $value );
 						$column = strtolower(str_replace( $this->__TABLE__.".", "", $column )); 
-						foreach( $this->__COLUMNS__ as $col ){
+						foreach( $this->__AVAILABLE_COLUMNS__ as $col ){
 							$col = strtolower($col);
 							if( $col == $column || $this->startswith( $column, $col." " ) ){
 								$colcount++;
@@ -744,16 +746,14 @@ class SQL{
 			
 			if( !isset(DATABASE::$database_data[$this->__USE_DB]) ){
 				
-				$db_data = $DBOVAR::query( "select * from all_tab_columns where lower(owner)='".strtolower(DATABASE::$databases[$this->__USE_DB]['user'])."'", DATABASE::ALL );
+				$db_data = $DBOVAR::query( "select * from all_tab_columns where lower(owner)='".strtolower(DATABASE::$databases[$this->__USE_DB]['user'])."'", DATABASE::VOID );
 				DATABASE::$database_data[$this->__USE_DB] = array();
 				
-				foreach( $db_data as $row ){
+				while( $db_data->fetch() ){
 					
 					$entry = array();
-					foreach( $row as $column=>$value ){
-						if( !is_int( $column ) ){
-							$entry[strtolower($column)] = is_resource( $value ) ? stream_get_contents( $value ) : $value ;
-						}
+					foreach( $db_data as $column=>$value ){
+						$entry[strtolower($column)] = $value ;
 					}
 					
 					if( !isset( DATABASE::$database_data[$this->__USE_DB][strtolower($entry["table_name"])] ) ){
@@ -765,17 +765,13 @@ class SQL{
 				}
 				
 			}
-			
-			
-			
+						
 		}
 	}
 	
 	private function find_column_datatype_ora( $column ){
 		
 		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
-			$format = array( DATABASE::QUOTES, strrev(DATABASE::QUOTES), DATABASE::PREPEND, strrev(DATABASE::PREPEND) );
-			$column = str_replace( $format, "", $column );
 			
 			if( preg_match( '/\./', $column ) ){
 				$column = explode( ".", $column );
@@ -804,10 +800,6 @@ class SQL{
 			return $primaryKey;
 		}
 		
-		if( count( $this->__KEYS__ ) > 0 ){
-			return $this->__KEYS__[0];
-		}
-		
 		return "";
 		
 	}
@@ -827,8 +819,6 @@ class SQL{
 			$column = ".".$name[1];
 			$name = $name[0];
 		}
-		
-		$name = TABLENAME::finalname($name);
 		
 		if( strpos( $this->__PREPEND_TABLENAME, $tempname ) === 0 ){
 			$name = $this->__PREPEND_TABLENAME.$name;
@@ -913,6 +903,8 @@ class SQL{
 				$this->__SELECTADD__[] = $add;
 			}
 		}
+		
+		return $this;
 			
 	}
 	
@@ -942,19 +934,17 @@ class SQL{
 			}
 			$this->$group__BY = array_unique($this->$group__BY);
 		}
+		
+		return $this;
 			
 	}
 	
 	private function add_selectAs_groupBy( $groupBy ){
 		
-		$format = array( DATABASE::QUOTES, strrev(DATABASE::QUOTES), DATABASE::PREPEND, strrev(DATABASE::PREPEND) );
-		$b = str_replace( $format, "", $groupBy );
-		
 		if( count( $this->__SELECTADD_GROUPBY__ ) > 0 ){
 			$group = $this->__SELECTADD_GROUPBY__;
 			foreach( $group as $element  ){
-				$a = str_replace( $format, "", $element );
-				if( $b == $a ){
+				if( $groupBy == $element ){
 					return;
 				}
 			}
@@ -969,7 +959,7 @@ class SQL{
 		$DBOVAR = $this->__USE_DB;
 		if( $table == NULL ){
 			
-			foreach( $this->__COLUMNS__ as $column ){
+			foreach( $this->__AVAILABLE_COLUMNS__ as $column ){
 				
 				$table_column_pair = $DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $column );
 				$column_name = ( strtolower( $this->find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
@@ -982,14 +972,14 @@ class SQL{
 				
 			}
 			
-		}else if( $table instanceof TABLE  ){
+		}else if( $table instanceof SQL  ){
 			
 			$format = ( $format == "%s" )? $table->__TABLE__."_%s" : $format;
 			
 			$this->__OTHERSELECTAS__[$table->__TABLE__] = array();
 			$this->__OTHERSELECTAS_GROUPBY__[$table->__TABLE__] = array();
 			
-			foreach( $table->__COLUMNS__ as $column ){
+			foreach( $table->__AVAILABLE_COLUMNS__ as $column ){
 				
 				$table_column_pair = $DBOVAR::TF( $table->__TABLE__ ).".".$DBOVAR::NF( $column );
 				$column_name = ( strtolower( $this->find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
@@ -1006,7 +996,7 @@ class SQL{
 			
 			$this->__TABLEALIAS__ = $table;
 			
-			foreach( $this->__COLUMNS__ as $column ){
+			foreach( $this->__AVAILABLE_COLUMNS__ as $column ){
 				$table_column_pair = $DBOVAR::TF( $table ).".".$DBOVAR::NF( $column );
 				$column_name = ( strtolower( $this->find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
 				$this->__SELECTAS__[$column] = $table_column_pair." AS ".$DBOVAR::NF( sprintf( $format , $column ) );	
@@ -1017,6 +1007,8 @@ class SQL{
 			}
 			
 		}
+		
+		return $this;
 		
 	}
 	
@@ -1032,6 +1024,14 @@ class SQL{
 		}elseif( is_array( $table ) ){
 			$this->__LINKS__ = $table;
 		}
+		
+		return $this;
+		
+	}
+	
+	public function hasColumn( $field ) {
+	
+		return in_array( trim( $field ), $this->__AVAILABLE_COLUMNS__ );
 		
 	}
 		
@@ -1070,12 +1070,9 @@ class SQL{
 				
 				$this->__JOIN__[$__table.".".$__column.".".$__link] = $this->__JOINONADD__[$table->__TABLE__];
 				
-				foreach( $table->__COLUMNS__ as $column ){
+				foreach( $table->__COLUMNS__ as $column=>$value ){
 					$column = strtolower($column);
-					if( isset( $table->$column ) ){
-						$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $table->$column;
-					}
-					
+					$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $value;					
 				}
 				
 				if( count( $table->__JOIN__ ) > 0 ){
@@ -1104,12 +1101,9 @@ class SQL{
 					
 					$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted .".".$DBOVAR::NF( $__column )."";
 					
-					foreach( $table->__COLUMNS__ as $column ){
+					foreach( $table->__COLUMNS__ as $column=>$value ){
 						$column = strtolower($column);
-						if( isset( $table->$column ) ){
-							$this->__JOINWHERE__[$__use_table_formatted][$column] = $table->$column;
-						}
-						
+						$this->__JOINWHERE__[$__use_table_formatted][$column] = $value;						
 					}
 					
 					if( count( $table->__JOIN__ ) > 0 ){
@@ -1134,50 +1128,56 @@ class SQL{
 				
 				foreach( $table->__LINKS__ as $columnname=>$link  ){
 		
-					$linked = $link;
+					$linkers = $link;
 		
-					if( is_array( $linked ) ){
+					if( is_array( $linkers ) ){
 						
 						continue;					
 						
 					}
-		
-					$linked = explode( ":", $linked );
-					$table__ = trim( $linked[0] );
-					$table_link = trim( $linked[1] );
 					
-					if( $table__ == $this->__TABLE__ ){
+					$links = array($linkers);
+			
+					if( preg_match( '/,/', $linkers ) ){
+						$links = explode( ",", $linkers );
+					}
+					foreach( $links as $linked ){
 						
-						$__table = $table->__TABLE__;
-						$__column = $columnname;
-						$__link = $table_link;
+						$linked = explode( ":", $linked );
+						$table__ = trim( $linked[0] );
+						$table_link = trim( $linked[1] );
 						
-						
-						$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted .".".$DBOVAR::NF( $__column )."";
-						
-						foreach( $table->__COLUMNS__ as $column ){
-							$column = strtolower($column);
-							if( isset( $table->$column ) ){
-								$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $table->$column;
+						if( $table__ == $this->__TABLE__ ){
+							
+							$__table = $table->__TABLE__;
+							$__column = $columnname;
+							$__link = $table_link;
+							
+							
+							$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted .".".$DBOVAR::NF( $__column )."";
+							
+							foreach( $table->__COLUMNS__ as $column=>$value ){
+								$column = strtolower($column);
+								$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $value;
 							}
 							
-						}
-						
-						if( count( $table->__JOIN__ ) > 0 ){
-							foreach( $table->__JOIN__ as $joinname=>$join ){
-								$this->__JOIN__[$joinname] = $join;
+							if( count( $table->__JOIN__ ) > 0 ){
+								foreach( $table->__JOIN__ as $joinname=>$join ){
+									$this->__JOIN__[$joinname] = $join;
+								}
 							}
-						}
-						
-						if( count( $table->__JOINWHERE__ ) > 0 ){
-							foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
-								$this->__JOINWHERE__[$joinwherename] = $joinwhere;
-							}
-						}			
-						
-						$link_found = true;
-						
-						break;
+							
+							if( count( $table->__JOINWHERE__ ) > 0 ){
+								foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
+									$this->__JOINWHERE__[$joinwherename] = $joinwhere;
+								}
+							}			
+							
+							$link_found = true;
+							
+							break;
+							
+						}	
 						
 					}
 					
@@ -1189,48 +1189,55 @@ class SQL{
 				
 				foreach( $this->__LINKS__ as $columnname=>$link  ){
 		
-					$linked = $link;
+					$linkers = $link;
 		
-					if( is_array( $linked ) ){
+					if( is_array( $linkers ) ){
 						
 						continue;					
 						
 					}
-		
-					$linked = explode( ":", $linked );
-					$table__ = trim( $linked[0] );
-					$table_link = trim( $linked[1] );
 					
-					if( $table__ == $table->__TABLE__ ){
+					$links = array($linkers);
+			
+					if( preg_match( '/,/', $linkers ) ){
+						$links = explode( ",", $linkers );
+					}
+					
+					foreach( $links as $linked ){
 						
-						$__table = $table->__TABLE__;
-						$__column = $table_link;
-						$__link = $columnname;
+						$linked = explode( ":", $linked );
+						$table__ = trim( $linked[0] );
+						$table_link = trim( $linked[1] );
 						
-						
-						$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted.".".$DBOVAR::NF( $__column )."";
-						
-						foreach( $table->__COLUMNS__ as $column ){
-							$column = strtolower($column);
-							if( isset( $table->$column ) ){
-								$this->__JOINWHERE__[$__use_table_formatted][$column] = $table->$column;
+						if( $table__ == $table->__TABLE__ ){
+							
+							$__table = $table->__TABLE__;
+							$__column = $table_link;
+							$__link = $columnname;
+							
+							
+							$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted.".".$DBOVAR::NF( $__column )."";
+							
+							foreach( $table->__COLUMNS__ as $column=>$value ){
+								$column = strtolower($column);
+								$this->__JOINWHERE__[$__use_table_formatted][$column] = $value;
 							}
 							
-						}
-						
-						if( count( $table->__JOIN__ ) > 0 ){
-							foreach( $table->__JOIN__ as $joinname=>$join ){
-								$this->__JOIN__[$joinname] = $join;
+							if( count( $table->__JOIN__ ) > 0 ){
+								foreach( $table->__JOIN__ as $joinname=>$join ){
+									$this->__JOIN__[$joinname] = $join;
+								}
 							}
-						}
-						
-						if( count( $table->__JOINWHERE__ ) > 0 ){
-							foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
-								$this->__JOINWHERE__[$joinwherename] = $joinwhere;
-							}
-						}					
-						
-						break;
+							
+							if( count( $table->__JOINWHERE__ ) > 0 ){
+								foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
+									$this->__JOINWHERE__[$joinwherename] = $joinwhere;
+								}
+							}					
+							
+							break;
+							
+						}	
 						
 					}
 					
@@ -1239,6 +1246,8 @@ class SQL{
 			}
 			
 		}
+		
+		return $this;
 			
 	}		
 	
@@ -1266,19 +1275,19 @@ class SQL{
 			
 			if( !$void ){
 				
-				if( DATABASE::startswith( $sql, "SELECT" ) ){
+				if( DATABASE::startswith( strtoupper($sql), "SELECT" ) ){
 					$this->setIsSelect();
 				}
 				
-				if( DATABASE::startswith( $sql, "UPDATE" ) ){
+				if( DATABASE::startswith( strtoupper($sql), "UPDATE" ) ){
 					$this->setIsUpdate();
 				}
 				
-				if( DATABASE::startswith( $sql, "DELETE" ) ){
+				if( DATABASE::startswith( strtoupper($sql), "DELETE" ) ){
 					$this->setIsDelete();
 				}
 				
-				if( DATABASE::startswith( $sql, "INSERT" ) ){
+				if( DATABASE::startswith( strtoupper($sql), "INSERT" ) ){
 					$this->setIsInsert();
 				}
 				

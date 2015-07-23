@@ -56,7 +56,8 @@ class DATABASE {
 	const DAYFULL = 10;
 	const WEEKS = 11;
 	
-	public static $LOGCALLER = null;
+	public static $ERRORLOGCALLBACK = null;
+	public static $TABLENAMECALLBACK = null;
 	public static $CASESENSITIVE = false;
 	public static $PREFIX = "";
 	public static $USE_PDO = true;
@@ -113,7 +114,8 @@ class DATABASE {
 			$config['usePDO'] = ( isset($config['usePDO']) )? $config['usePDO'] : true ;
 			$config['casesensitive'] = ( isset($config['casesensitive']) )? $config['casesensitive'] : true ;
 			$config['tmp'] = ( isset($config['tmp']) )? $config['tmp'] : "/tmp" ;
-			$config['logcaller'] = ( isset($config['logcaller']) )? $config['logcaller'] : null ;
+			$config['errorlogcallback'] = ( isset($config['errorlogcallback']) )? $config['errorlogcallback'] : null ;
+			$config['tablenamecallback'] = ( isset($config['tablenamecallback']) )? $config['tablenamecallback'] : null ;
 			$config['prefix'] = ( isset($config['prefix']) )? $config['prefix'] : null ;
 			self::$databases[$name] = $config;
 			self::load_class($name);
@@ -160,7 +162,8 @@ class DATABASE {
 		self::$USE_PDO = self::$databases[self::$database_in_use]['usePDO'];
 		self::$CASESENSITIVE = self::$databases[self::$database_in_use]['casesensitive'];
 		self::$TMP = self::$databases[self::$database_in_use]['tmp'];
-		self::$LOGCALLER = self::$databases[self::$database_in_use]['logcaller'];
+		self::$ERRORLOGCALLBACK = self::$databases[self::$database_in_use]['errorlogcallback'];
+		self::$TABLENAMECALLBACK = self::$databases[self::$database_in_use]['tablenamecallback'];
 		self::$PREFIX = self::$databases[self::$database_in_use]['prefix'];
 		
 		self::setob();
@@ -289,8 +292,8 @@ class DATABASE {
 	}
 	
 	public static function log_error($class){
-		if( self::$LOGCALLER != null ){
-			call_user_func( self::$LOGCALLER, __CLASS__ );
+		if( self::$ERRORLOGCALLBACK != null ){
+			call_user_func( self::$ERRORLOGCALLBACK, __CLASS__ );
 		}
 	}
 	
@@ -633,7 +636,7 @@ class DATABASE {
 	 This will cut off the clob to fit in a varchar size if it exceeds varchar length. So if you don't want your clob cut off don't use it in the select/groupby. 
 	 * 
 	 group by
-	 DBO::ora_to_char("paymentDetail") == to_char(paymentDetail)
+	 DBO::ora_to_char("column") == to_char(column)
 	 * */
 
 	public static function ora_to_char($name) {	
@@ -658,7 +661,19 @@ class DATABASE {
 	 DBO::NF("TN.id") -- YES
 	 * */
 
-	public static function TF($name) {		
+	public static function TF($name) {
+		if( self::$TABLENAMECALLBACK != null ){
+			
+			$names = array($name);
+			
+			if( preg_match( '/\./', $name ) ){
+				$names = explode(".", $name);
+			}			
+		
+			$names[0] = call_user_func( self::$TABLENAMECALLBACK, $names[0] );
+			$name = implode(".", $names);
+			
+		}		
 		return self::nameformat($name,true);
 	}	
 	
@@ -707,7 +722,10 @@ class DATABASE {
 		$name = str_replace( array( "`", '"' ), "", trim( $name ) );		
 		
 		if( $table ){
-			$name = self::quote_name( self::$PREFIX.$name );
+			if( !self::startswith( $name, self::$PREFIX ) ){
+				$name = self::$PREFIX.$name;
+			}
+			$name = self::quote_name( $name );
 		}else if( $max ){
 			$name = ( self::$dbtype == self::ORACLE )? 'MAX('.self::quote_name( $name ).')' : $name;
 		}else if( $clobtochar ){
@@ -1490,7 +1508,7 @@ class DATABASE {
 	public static function count( $sql, $countWhat = false, $whereAddOnly = false, $str = false ){
 		
 		$sql->count( $countWhat, $whereAddOnly, $str );
-		if( $str ){
+		if( !$str ){
 			$sql = self::query( $sql->prepared(), self::FET, $sql->values() );
 		}else{
 			$sql = self::query( $sql->prepared(), self::FET );
