@@ -384,8 +384,8 @@ class DATABASE {
 	public static function getrowcount( $str_sql, $bindings=NULL ){
 		$rowcount = 1;
 		$query = self::sql();
-		$query->compiled_str( $str_sql );
-		if( $query->isSelect() ){
+		$query->__compiled_str( $str_sql );
+		if( $query->__isSelect() ){
 			$str_sql = "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtblcount";
 			$count = self::query( $str_sql, self::FET, $bindings );
 			$rowcount = $count->rowcount;
@@ -681,7 +681,7 @@ class DATABASE {
 		
 		self::use_database();
 		$sql = new SQL($tablename);
-		$sql->use_database( self::$database_in_use );
+		$sql->__use_database( self::$database_in_use );
 		return $sql;
 		
 	}
@@ -1294,7 +1294,7 @@ class DATABASE {
 		$sql = "select last_number from user_sequences where sequence_name='".self::TF(strtoupper($table)).self::SEQ."'";
 		
 		$query = self::sql();
-		$query->compiled_str( $sql );
+		$query->__compiled_str( $sql );
 		$query = self::exec_statement( $query );
 		$query->fetch();
 		$last_number = 0;
@@ -1326,13 +1326,13 @@ class DATABASE {
 					
 					
 					$query = self::sql();
-					$query->compiled_str( $sql, true );
+					$query->__compiled_str( $sql, true );
 					$query = self::exec_statement( $query );
 					
 					$sql = "select last_number from user_sequences where sequence_name='".self::TF(strtoupper($table)).self::SEQ."'";
 		
 					$query = self::sql();
-					$query->compiled_str( $sql );
+					$query->__compiled_str( $sql );
 					$query = self::exec_statement( $query );
 					$query->fetch();
 					$last_number = $query->last_number;
@@ -1345,7 +1345,7 @@ class DATABASE {
 				
 				$sql = "SELECT ".self::TF($table).self::SEQ.".nextval AS last_number FROM dual";
 				$query = self::sql();
-				$query->compiled_str( $sql, true );
+				$query->__compiled_str( $sql, true );
 				$query = self::exec_statement( $query );
 				$query->fetch();
 				$last_number = $query->last_number;
@@ -1463,55 +1463,55 @@ class DATABASE {
 	}
 	
 	public static function exec_prepared( $sql ){
-		$sql->output();
-		if($sql->isVoid()){
-			return self::query( $sql->prepared(), self::VOID, $sql->values() );
+		$sql->__output();
+		if($sql->__isVoid()){
+			return self::query( $sql->__prepared(), self::VOID, $sql->__values() );
 		}
-		if($sql->isSelect()){
-			return self::query( $sql->prepared(), self::ALL, $sql->values() );
+		if($sql->__isSelect()){
+			return self::query( $sql->__prepared(), self::ALL, $sql->__values() );
 		}
-		if($sql->isDelete()){
-			$return = self::query( $sql->prepared(), self::DEL, $sql->values() );
+		if($sql->__isDelete()){
+			$return = self::query( $sql->__prepared(), self::DEL, $sql->__values() );
 			return $return->count() > 0;
 		}
-		if($sql->isUpdate()){
-			$return = self::query( $sql->prepared(), self::UPD, $sql->values() );
+		if($sql->__isUpdate()){
+			$return = self::query( $sql->__prepared(), self::UPD, $sql->__values() );
 			return $return->count() > 0;
 		}
-		if($sql->isInsert()){
-			$return = self::query( $sql->prepared(), self::INS, $sql->values() );
+		if($sql->__isInsert()){
+			$return = self::query( $sql->__prepared(), self::INS, $sql->__values() );
 			return ( self::$dbtype == self::ORACLE )? $sql->__INSERTID__ : $return;
 		}
 	}
 	
 	public static function exec_statement( $sql ){
-		if($sql->isVoid()){
-			return self::query( $sql->output_str(), self::VOID );
+		if($sql->__isVoid()){
+			return self::query( $sql->__output_str(), self::VOID );
 		}
-		if($sql->isSelect()){
-			return self::query( $sql->output_str(), self::ALL );
+		if($sql->__isSelect()){
+			return self::query( $sql->__output_str(), self::ALL );
 		}
-		if($sql->isDelete()){
-			$return = self::query( $sql->output_str(), self::DEL );
+		if($sql->__isDelete()){
+			$return = self::query( $sql->__output_str(), self::DEL );
 			return $return->count() > 0;
 		}
-		if($sql->isUpdate()){
-			$return = self::query( $sql->output_str(), self::UPD );
+		if($sql->__isUpdate()){
+			$return = self::query( $sql->__output_str(), self::UPD );
 			return $return->count() > 0;
 		}
-		if($sql->isInsert()){
-			$return = self::query( $sql->output_str(), self::INS );
+		if($sql->__isInsert()){
+			$return = self::query( $sql->__output_str(), self::INS );
 			return ( self::$dbtype == self::ORACLE )? $sql->__INSERTID__ : $return;
 		}
 	}
 	
 	public static function count( $sql, $countWhat = false, $whereAddOnly = false, $str = false ){
 		
-		$sql->count( $countWhat, $whereAddOnly, $str );
+		$sql->__count( $countWhat, $whereAddOnly, $str );
 		if( !$str ){
-			$sql = self::query( $sql->prepared(), self::FET, $sql->values() );
+			$sql = self::query( $sql->__prepared(), self::FET, $sql->__values() );
 		}else{
-			$sql = self::query( $sql->prepared(), self::FET );
+			$sql = self::query( $sql->__prepared(), self::FET );
 		}
 		return $sql->rowcount;
 		
