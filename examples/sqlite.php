@@ -26,13 +26,13 @@ $create_table = "CREATE TABLE IF NOT EXISTS users (
   lasteditedby int(11) DEFAULT 0
 );";
 
-$create = SQLITEDB::sql()->compiled_str( $create_table, DATABASE::VOID );
+$create = SQLITEDB::sql()->__compiled_str( $create_table, DATABASE::VOID );
 SQLITEDB::exec_statement( $create );  
 ### exec_statement executes the final sql string, 
 ### as opposed to one with value binding when using exec_prepared
 
 $insert = SQLITEDB::sql()
-	->insertInto("users")	// needs a table name first before any other parts of the statement.
+	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("bobby");	// set username = 'bobby'
 	
@@ -40,7 +40,7 @@ $result = SQLITEDB::exec_prepared( $insert );
 print $result->insertid().": bobby<br>";
 
 $insert = SQLITEDB::sql()
-	->insertInto("users")	// needs a table name first before any other parts of the statement.
+	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("tommy");	// set username = 'tommy'
 	
@@ -48,7 +48,7 @@ $result = SQLITEDB::exec_statement( $insert );
 print $result->insertid().": tommy<br>";
 
 $insert = SQLITEDB::sql()
-	->insertInto("users")	// needs a table name first before any other parts of the statement.
+	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("cathy");	// set username = 'cathy'
 	
@@ -56,7 +56,7 @@ $result = SQLITEDB::exec_prepared( $insert );
 print $result->insertid().": cathy<br>";
 
 $select = SQLITEDB::sql()
-	->selectFrom("users")	// needs a table name first before any other parts of the statement.
+	->__selectFrom("users")	// needs a table name first before any other parts of the statement.
 	->orderBy("id DESC");		// the order of ORDER BY, WHERE, GROUP BY after selectFrom does not matter
 
 $data = SQLITEDB::exec_statement( $select );
