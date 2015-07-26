@@ -82,7 +82,7 @@ class SQL{
 	public function __construct( $__TABLE__ = "" ) {
 		$this->__TABLE__ = $__TABLE__;
 	}
-	
+
 	/**
 	 * inaccessible functions
 	 * 
@@ -96,12 +96,12 @@ class SQL{
 	 */
 	 
 	public function __call($name, $arg){
-        if( count($arg) == 1 ){
+		if( count($arg) == 1 ){
 			$this->__COLUMNS__[$name] = $arg[0];
 		}
 		return $this;
-    }
-	
+	}
+
 	/**
 	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
 	 * 
@@ -109,7 +109,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __setIsSelect(){
 		$this->__IS_SELECT__ = true;
 		$this->__IS_DELETE__ = false;
@@ -117,7 +117,7 @@ class SQL{
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = false;
 	}
-	
+
 	/**
 	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
 	 * 
@@ -125,7 +125,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __setIsDelete(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = true;
@@ -133,7 +133,7 @@ class SQL{
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = false;
 	}
-	
+
 	/**
 	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
 	 * 
@@ -141,7 +141,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __setIsUpdate(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = false;
@@ -149,7 +149,7 @@ class SQL{
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = false;
 	}
-	
+
 	/**
 	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
 	 * 
@@ -157,7 +157,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __setIsInsert(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = false;
@@ -165,7 +165,7 @@ class SQL{
 		$this->__IS_INSERT__ = true;
 		$this->__IS_VOID__ = false;
 	}
-	
+
 	/**
 	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
 	 * 
@@ -173,7 +173,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __setIsVoid(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = false;
@@ -181,7 +181,7 @@ class SQL{
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = true;
 	}
-	
+
 	/**
 	 * return a hint of the type of sql statement being used
 	 * 
@@ -189,11 +189,11 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __isSelect(){
 		return $this->__IS_SELECT__;
 	}
-	
+
 	/**
 	 * return a hint of the type of sql statement being used
 	 * 
@@ -201,11 +201,11 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __isDelete(){
 		return $this->__IS_DELETE__;
 	}
-	
+
 	/**
 	 * return a hint of the type of sql statement being used
 	 * 
@@ -213,11 +213,11 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __isUpdate(){
 		return $this->__IS_UPDATE__;
 	}
-	
+
 	/**
 	 * return a hint of the type of sql statement being used
 	 * 
@@ -225,11 +225,11 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __isInsert(){
 		return $this->__IS_INSERT__;
 	}
-	
+
 	/**
 	 * return a hint of the type of sql statement being used
 	 * 
@@ -237,11 +237,11 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __isVoid(){
 		return $this->__IS_VOID__;
 	}
-	
+
 	/**
 	 * check if table name is set for  __selectFrom(), __deleteFrom(), __insertInto() and __updateSet()
 	 * 
@@ -249,7 +249,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __checkTablename( $__TABLE__ ){
 		
 		if( $__TABLE__ == "" && $this->__TABLE__ == "" ){
@@ -262,7 +262,7 @@ class SQL{
 		}
 		
 	}
-	
+
 	/**
 	 * creates context for the sql statement being constructed
 	 * 
@@ -270,14 +270,14 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __selectFrom( $__TABLE__ = "" ){
 		$this->__setIsSelect();
 		$this->__checkTablename( $__TABLE__ );
 		$this->__TABLE__ = $__TABLE__;
 		return $this;
 	}
-	
+
 	/**
 	 * creates context for the sql statement being constructed
 	 * 
@@ -285,14 +285,14 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __deleteFrom( $__TABLE__ = "" ){
 		$this->__setIsDelete();
 		$this->__checkTablename( $__TABLE__ );
 		$this->__TABLE__ = $__TABLE__;
 		return $this;
 	}
-	
+
 	/**
 	 * creates context for the sql statement being constructed
 	 * 
@@ -300,14 +300,14 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __insertInto( $__TABLE__ = "" ){
 		$this->__setIsInsert();
 		$this->__checkTablename( $__TABLE__ );
 		$this->__TABLE__ = $__TABLE__;
 		return $this;
 	}
-	
+
 	/**
 	 * creates context for the sql statement being constructed
 	 * 
@@ -315,14 +315,14 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __updateSet( $__TABLE__ = "" ){
 		$this->__setIsUpdate();
 		$this->__checkTablename( $__TABLE__ );
 		$this->__TABLE__ = $__TABLE__;
 		return $this;
 	}
-	
+
 	/**
 	 * adds options to be added to the where claus of the sql statement
 	 * 
@@ -331,7 +331,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __where( $add, $logic = "AND" ){
 		
 		if( !empty($add) ){
@@ -343,7 +343,7 @@ class SQL{
 		return $this;
 			
 	}
-	
+
 	/**
 	 * sets the database configuration name
 	 * 
@@ -355,12 +355,12 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __use_database($__USE_DB) {
 		$this->__USE_DB = $__USE_DB;
 		$this->__get_database_data();
 	}
-	
+
 	/**
 	 * creates the sql statement
 	 * 
@@ -370,7 +370,7 @@ class SQL{
 	 * 
 	 * @return the class object or sql string
 	 */
-	
+
 	public function __output( $str=false ) {
 		
 		if( trim($this->__TABLE__) != "" ){
@@ -391,7 +391,7 @@ class SQL{
 		return ( $str )? $this->__STATEMENT__ : $this ;
 				
 	}
-	
+
 	/**
 	 * creates a select statement
 	 * 
@@ -399,11 +399,11 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __select( $str=false ) {
-	
+
 		$DBOVAR = $this->__USE_DB;
-	
+
 		$columns = array();
 		$columns_str = array();
 		$columnvalues = array();
@@ -416,7 +416,7 @@ class SQL{
 		if( !$group_BY ){
 			$this->__SELECTADD_GROUPBY__ = array();
 		}
-	
+
 		foreach( $this->__COLUMNS__ as $column=>$value ){
 			$__iddot = $this->__TABLE__.count($columns);
 			$columns[] = $DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $column )." = :".$__iddot;
@@ -609,9 +609,9 @@ class SQL{
 		$this->__VALUES__ = $columnvalues;
 		$this->__fix_where();
 		return $this;
-	
+
 	}
-	
+
 	/**
 	 * creates an insert statement
 	 * 
@@ -619,7 +619,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __insert( $str=false ){	
 		
 		$DBOVAR = $this->__USE_DB;
@@ -628,7 +628,7 @@ class SQL{
 		$insert_preps = array();
 		$insert_preps_str = array();
 		$insert_columnvalues = array();
-	
+
 		foreach( $this->__COLUMNS__ as $column=>$value ){
 			
 			$insert_columns[] = $DBOVAR::NF( $column );				
@@ -689,7 +689,7 @@ class SQL{
 		return $this;
 			
 	}
-	
+
 	/**
 	 * creates a delete statement
 	 * 
@@ -697,7 +697,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __delete($str=false){	
 		
 		$DBOVAR = $this->__USE_DB;
@@ -752,7 +752,7 @@ class SQL{
 		return $this;
 			
 	}
-	
+
 	/**
 	 * creates an update statement
 	 * 
@@ -761,7 +761,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __update($str=false){	
 		
 		$DBOVAR = $this->__USE_DB;
@@ -774,7 +774,7 @@ class SQL{
 		$update_columnvalues = array();
 		
 		$primaryKey = $DBOVAR::getPrimaryKey( $this->__tablename() );
-	
+
 		foreach( $this->__COLUMNS__ as $column=>$value ){
 			if( strtolower($column) == strtolower($primaryKey) ){
 				if( count( $this->__WHERE__ ) == 0 ){						
@@ -794,7 +794,7 @@ class SQL{
 				
 			}
 		}
-	
+
 		if( count( $this->__WHERE__ ) == 0 ){
 			
 			foreach( $where_columnvalues as $key=>$column ){
@@ -825,7 +825,7 @@ class SQL{
 		}
 			
 	}
-	
+
 	/**
 	 * returns the last id inserted after an insert statement
 	 * 
@@ -833,11 +833,11 @@ class SQL{
 	 * 
 	 * @return integer
 	 */
-	
+
 	public function __lastInsertId(){
 		return $this->__INSERTID__;
 	}
-	
+
 	/**
 	 * checks string literal
 	 * 
@@ -849,7 +849,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	public function __check_string_literal(){
 		
 		$str_sql = $this->__STATEMENT__;
@@ -870,7 +870,7 @@ class SQL{
 		//$subvaluestxt = array();
 		
 		foreach( $values as $bindname=>$bindvalue ){
-	
+
 			if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::MYSQL ){
 				
 				if( strlen( $bindvalue ) > 65535 ){
@@ -957,7 +957,7 @@ class SQL{
 		$this->__VALUES__ = $values;
 		
 	}
-	
+
 	/**
 	 * returns the sql statement with bindings
 	 * 
@@ -965,11 +965,11 @@ class SQL{
 	 * 
 	 * @return string
 	 */
-	
+
 	public function __prepared(){
 		return $this->__STATEMENT__;
 	}
-	
+
 	/**
 	 * returns the sql bindings
 	 * 
@@ -977,11 +977,11 @@ class SQL{
 	 * 
 	 * @return associative array
 	 */
-	
+
 	public function __values(){
 		return $this->__VALUES__;
 	}
-	
+
 	/**
 	 * returns the finalised sql statement
 	 * 
@@ -989,12 +989,12 @@ class SQL{
 	 * 
 	 * @return string
 	 */
-	
+
 	public function __output_str(){
 		$this->__output( true );
 		return $this->__STATEMENT__;
 	}
-	
+
 	/**
 	 * returns the finalised sql statement
 	 * 
@@ -1005,12 +1005,12 @@ class SQL{
 	 * 
 	 * @return string
 	 */
-	
+
 	public function __count_str( $countWhat = false, $whereAddOnly = false ){
 		$this->__count( $countWhat, $whereAddOnly, true );
 		return $this->__STATEMENT__;
 	}
-	
+
 	/**
 	 * returns the finalised sql statement
 	 * 
@@ -1021,28 +1021,28 @@ class SQL{
 	 * 
 	 * @return string or the class object
 	 */
-	
+
 	public function __count( $countWhat = false, $whereAddOnly = false, $str=false ){
 		
 		$DBOVAR = $this->__USE_DB;
 		if (is_bool($countWhat)) {
-            $whereAddOnly = $countWhat;
-        }
-        
-        $table = $this->__TABLE__;
-        $key = $this->__getfirstkey();        
-        
-        // support distinct on default keys.
-        $countWhat = (strtoupper($countWhat) == 'DISTINCT') ? "DISTINCT ".$DBOVAR::TF( $table.".".$key ) : $countWhat;        
-        $countWhat = is_string($countWhat) ? $countWhat : $DBOVAR::TF( $table.".".$key );
-        $as = "rowcount";
-        $this->__COUNT__ = true;
-        $this->__selectAdd( "COUNT( ".$countWhat." ) AS ".$DBOVAR::NF( $as ) ); 
-        
-        return $this->__output($str);
+			$whereAddOnly = $countWhat;
+		}
+		
+		$table = $this->__TABLE__;
+		$key = $this->__getfirstkey();        
+		
+		// support distinct on default keys.
+		$countWhat = (strtoupper($countWhat) == 'DISTINCT') ? "DISTINCT ".$DBOVAR::TF( $table.".".$key ) : $countWhat;        
+		$countWhat = is_string($countWhat) ? $countWhat : $DBOVAR::TF( $table.".".$key );
+		$as = "rowcount";
+		$this->__COUNT__ = true;
+		$this->__selectAdd( "COUNT( ".$countWhat." ) AS ".$DBOVAR::NF( $as ) ); 
+		
+		return $this->__output($str);
 		
 	}
-	
+
 	/**
 	 * fetches column data
 	 * 
@@ -1050,7 +1050,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	private function __get_database_data(){
 		$DBOVAR = $this->__USE_DB;
 		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
@@ -1079,7 +1079,7 @@ class SQL{
 						
 		}
 	}
-	
+
 	/**
 	 * returns column type
 	 * 
@@ -1087,7 +1087,7 @@ class SQL{
 	 * 
 	 * @return string
 	 */
-	
+
 	private function __find_column_datatype_ora( $column ){
 		
 		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
@@ -1109,7 +1109,7 @@ class SQL{
 		return "";
 		
 	}
-	
+
 	/**
 	 * returns first key
 	 * 
@@ -1118,7 +1118,7 @@ class SQL{
 	 * 
 	 * @return string
 	 */
-	
+
 	public function __getfirstkey( $primary=false ){
 		
 		$DBOVAR = $this->__USE_DB;
@@ -1135,7 +1135,7 @@ class SQL{
 		return "";
 		
 	}
-	
+
 	/**
 	 * this function is redundant. 
 	 * 
@@ -1144,7 +1144,7 @@ class SQL{
 	 * 
 	 * @return string
 	 */
-	
+
 	public function __replaceTableName( $name ){
 		
 		$tempname = $name;
@@ -1168,7 +1168,7 @@ class SQL{
 		return $name.$column;
 		
 	}
-	
+
 	/**
 	 * adds the defined prefix to table name 
 	 * 
@@ -1176,7 +1176,7 @@ class SQL{
 	 * 
 	 * @return string
 	 */
-	
+
 	public function __prependTableName( $name ){
 		
 		$name = $this->__replaceTableName( $name );
@@ -1190,7 +1190,7 @@ class SQL{
 		return $name;
 		
 	}
-	
+
 	/**
 	 * sets the sort order for returned results
 	 * 
@@ -1205,7 +1205,7 @@ class SQL{
 		$orderby = str_replace( array( "`",'"' ), "", $orderby );
 		$orderby = trim( $orderby );
 		$direction = "ASC";
-	
+
 		if( preg_match( '/DESC/i', $orderby ) ){
 			$direction = "DESC";
 		}
@@ -1227,14 +1227,14 @@ class SQL{
 		}else{
 			$orderby = preg_match('/\./',$orderby) ? $DBOVAR::TF(trim($orderby)) : $DBOVAR::NF(trim($orderby));
 		}
-	
+
 		$this->__ORDERDIRECTION__ = $direction;
 		$this->__ORDERBY__ = $orderby;
 		
 		return $this;
 		
 	}
-	
+
 	/**
 	 * sets the limit for returned results 
 	 * 
@@ -1243,7 +1243,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __limit( $from, $count=0 ){
 		
 		$this->__LIMIT__["from"] = $from; 
@@ -1252,7 +1252,7 @@ class SQL{
 		return $this;
 				
 	}
-	
+
 	/**
 	 * adds columns to be returned in a select statement 
 	 * 
@@ -1267,7 +1267,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __selectAdd( $add = "" ){	
 		
 		if( $add != "" ){
@@ -1281,7 +1281,7 @@ class SQL{
 		return $this;
 			
 	}
-	
+
 	/**
 	 * adds GROUP BY clause to sql statement 
 	 * 
@@ -1296,7 +1296,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __groupBy( $groupBy = "", $selectAdd=false ){	
 		
 		$DBOVAR = $this->__USE_DB;
@@ -1321,7 +1321,7 @@ class SQL{
 		return $this;
 			
 	}
-	
+
 	/**
 	 * adds columns to be returned in a select statement 
 	 * 
@@ -1329,7 +1329,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */
-	
+
 	private function __add_selectAs_groupBy( $groupBy ){
 		
 		if( count( $this->__SELECTADD_GROUPBY__ ) > 0 ){
@@ -1344,7 +1344,7 @@ class SQL{
 		$this->__groupBy( $groupBy, true );
 		
 	}
-	
+
 	/**
 	 * creates column aliases in a select statement 
 	 * 
@@ -1353,7 +1353,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __selectAs( $table=NULL, $format="%s" ){
 		
 		$DBOVAR = $this->__USE_DB;
@@ -1411,18 +1411,18 @@ class SQL{
 		return $this;
 		
 	}
-	
+
 	/**
 	 * this function is not used. 
 	 * 
 	 * @ignore
 	 */
-	
+
 	public function __joinOnAdd( $tablename, $join, $joinType='INNER' ){
 		$DBOVAR = $this->__USE_DB;
 		$this->__JOINONADD__[$tablename] = $joinType." JOIN ".$DBOVAR::NF($tablename)." ON ".$join;
 	}
-	
+
 	/**
 	 * creates link between tables 
 	 * 
@@ -1432,7 +1432,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */
-	
+
 	public function __createLink( $table, $column=null, $linkto=null ){
 		
 		if( $table instanceof SQL  ){
@@ -1444,7 +1444,7 @@ class SQL{
 		return $this;
 		
 	}
-	
+
 	/**
 	 * checks whether a column exists in a table
 	 * 
@@ -1457,13 +1457,13 @@ class SQL{
 	 * 
 	 * @return boolean
 	 */
-	
+
 	public function __hasColumn( $field ) {
-	
+
 		return in_array( trim( $field ), $this->__AVAILABLE_COLUMNS__ );
 		
 	}
-	
+
 	/**
 	 * adds join clause to sql statement
 	 * 
@@ -1690,7 +1690,7 @@ class SQL{
 		return $this;
 			
 	}
-	
+
 	/**
 	 * returns the table name being used
 	 * 
@@ -1698,12 +1698,12 @@ class SQL{
 	 * 
 	 * @return string
 	 */		
-	
+
 	public function __tablename(){
 		##TODO USING TABLENAME
 		return $this->__TABLE__;
 	}
-	
+
 	/**
 	 * checks whether the bound value is a function
 	 * 
@@ -1711,7 +1711,7 @@ class SQL{
 	 * 
 	 * @return boolean
 	 */		
-	
+
 	public function __is_function( $value ){
 		
 		$is_function = false;
@@ -1722,7 +1722,7 @@ class SQL{
 		}
 		return $is_function;
 	}
-	
+
 	/**
 	 * accepts a finalised sql statement and prepares SQL for DATABASE
 	 * 
@@ -1733,7 +1733,7 @@ class SQL{
 	 * 
 	 * @return the class object
 	 */	
-	
+
 	public function __compiled_str( $sql, $void=false ) {
 		
 		$this->__setIsVoid();
@@ -1786,7 +1786,7 @@ class SQL{
 		return $this;
 		
 	}
-	
+
 	/**
 	 * fixes the user's where 1 mistake
 	 * 
@@ -1805,7 +1805,7 @@ class SQL{
 	 * 
 	 * @return void
 	 */	
-	
+
 	public function __fix_where(){		
 		
 		$str = $this->__STATEMENT__;
