@@ -19,6 +19,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
+ 
+/**
+ * @package PHP Database Engine
+ */
 
 include( dirname(__FILE__)."/RESULTSET.php" );
 include( dirname(__FILE__)."/SQL.php" );
@@ -56,7 +60,8 @@ class DATABASE {
 	const DAYFULL = 10;
 	const WEEKS = 11;
 	
-	public static $LOGCALLER = null;
+	public static $ERRORLOGCALLBACK = null;
+	public static $TABLENAMECALLBACK = null;
 	public static $CASESENSITIVE = false;
 	public static $PREFIX = "";
 	public static $USE_PDO = true;
@@ -113,7 +118,8 @@ class DATABASE {
 			$config['usePDO'] = ( isset($config['usePDO']) )? $config['usePDO'] : true ;
 			$config['casesensitive'] = ( isset($config['casesensitive']) )? $config['casesensitive'] : true ;
 			$config['tmp'] = ( isset($config['tmp']) )? $config['tmp'] : "/tmp" ;
-			$config['logcaller'] = ( isset($config['logcaller']) )? $config['logcaller'] : null ;
+			$config['errorlogcallback'] = ( isset($config['errorlogcallback']) )? $config['errorlogcallback'] : null ;
+			$config['tablenamecallback'] = ( isset($config['tablenamecallback']) )? $config['tablenamecallback'] : null ;
 			$config['prefix'] = ( isset($config['prefix']) )? $config['prefix'] : null ;
 			self::$databases[$name] = $config;
 			self::load_class($name);
@@ -160,7 +166,8 @@ class DATABASE {
 		self::$USE_PDO = self::$databases[self::$database_in_use]['usePDO'];
 		self::$CASESENSITIVE = self::$databases[self::$database_in_use]['casesensitive'];
 		self::$TMP = self::$databases[self::$database_in_use]['tmp'];
-		self::$LOGCALLER = self::$databases[self::$database_in_use]['logcaller'];
+		self::$ERRORLOGCALLBACK = self::$databases[self::$database_in_use]['errorlogcallback'];
+		self::$TABLENAMECALLBACK = self::$databases[self::$database_in_use]['tablenamecallback'];
 		self::$PREFIX = self::$databases[self::$database_in_use]['prefix'];
 		
 		self::setob();
@@ -289,8 +296,8 @@ class DATABASE {
 	}
 	
 	public static function log_error($class){
-		if( self::$LOGCALLER != null ){
-			call_user_func( self::$LOGCALLER, __CLASS__ );
+		if( self::$ERRORLOGCALLBACK != null ){
+			call_user_func( self::$ERRORLOGCALLBACK, __CLASS__ );
 		}
 	}
 	
@@ -381,8 +388,8 @@ class DATABASE {
 	public static function getrowcount( $str_sql, $bindings=NULL ){
 		$rowcount = 1;
 		$query = self::sql();
-		$query->compiled_str( $str_sql );
-		if( $query->isSelect() ){
+		$query->__compiled_str( $str_sql );
+		if( $query->__isSelect() ){
 			$str_sql = "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtblcount";
 			$count = self::query( $str_sql, self::FET, $bindings );
 			$rowcount = $count->rowcount;
@@ -633,7 +640,7 @@ class DATABASE {
 	 This will cut off the clob to fit in a varchar size if it exceeds varchar length. So if you don't want your clob cut off don't use it in the select/groupby. 
 	 * 
 	 group by
-	 DBO::ora_to_char("paymentDetail") == to_char(paymentDetail)
+	 DBO::ora_to_char("column") == to_char(column)
 	 * */
 
 	public static function ora_to_char($name) {	
@@ -658,7 +665,19 @@ class DATABASE {
 	 DBO::NF("TN.id") -- YES
 	 * */
 
-	public static function TF($name) {		
+	public static function TF($name) {
+		if( self::$TABLENAMECALLBACK != null ){
+			
+			$names = array($name);
+			
+			if( preg_match( '/\./', $name ) ){
+				$names = explode(".", $name);
+			}			
+		
+			$names[0] = call_user_func( self::$TABLENAMECALLBACK, $names[0] );
+			$name = implode(".", $names);
+			
+		}		
 		return self::nameformat($name,true);
 	}	
 	
@@ -666,7 +685,8 @@ class DATABASE {
 		
 		self::use_database();
 		$sql = new SQL($tablename);
-		$sql->use_database( self::$database_in_use );
+		$sql->__use_database( self::$database_in_use );
+		$sql->__getColumns();
 		return $sql;
 		
 	}
@@ -707,7 +727,10 @@ class DATABASE {
 		$name = str_replace( array( "`", '"' ), "", trim( $name ) );		
 		
 		if( $table ){
-			$name = self::quote_name( self::$PREFIX.$name );
+			if( !self::startswith( $name, self::$PREFIX ) ){
+				$name = self::$PREFIX.$name;
+			}
+			$name = self::quote_name( $name );
 		}else if( $max ){
 			$name = ( self::$dbtype == self::ORACLE )? 'MAX('.self::quote_name( $name ).')' : $name;
 		}else if( $clobtochar ){
@@ -1276,7 +1299,7 @@ class DATABASE {
 		$sql = "select last_number from user_sequences where sequence_name='".self::TF(strtoupper($table)).self::SEQ."'";
 		
 		$query = self::sql();
-		$query->compiled_str( $sql );
+		$query->__compiled_str( $sql );
 		$query = self::exec_statement( $query );
 		$query->fetch();
 		$last_number = 0;
@@ -1308,13 +1331,13 @@ class DATABASE {
 					
 					
 					$query = self::sql();
-					$query->compiled_str( $sql, true );
+					$query->__compiled_str( $sql, true );
 					$query = self::exec_statement( $query );
 					
 					$sql = "select last_number from user_sequences where sequence_name='".self::TF(strtoupper($table)).self::SEQ."'";
 		
 					$query = self::sql();
-					$query->compiled_str( $sql );
+					$query->__compiled_str( $sql );
 					$query = self::exec_statement( $query );
 					$query->fetch();
 					$last_number = $query->last_number;
@@ -1327,7 +1350,7 @@ class DATABASE {
 				
 				$sql = "SELECT ".self::TF($table).self::SEQ.".nextval AS last_number FROM dual";
 				$query = self::sql();
-				$query->compiled_str( $sql, true );
+				$query->__compiled_str( $sql, true );
 				$query = self::exec_statement( $query );
 				$query->fetch();
 				$last_number = $query->last_number;
@@ -1357,6 +1380,45 @@ class DATABASE {
 		
 	}
 	
+	public static function getColumns( $table ){				
+		
+		self::use_database();
+		
+		if( self::$dbtype == self::SQLITE ){
+			$sql = "PRAGMA table_info(".self::TF($table).")";
+		}
+		
+		if( self::$dbtype == self::MYSQL ){
+			$sql = "SHOW COLUMNS FROM ".self::TF($table)."";
+		}
+		
+		if( self::$dbtype == self::ORACLE ){
+			
+			$sql = "SELECT cols.column_name as Field
+				FROM all_tab_columns cols
+				WHERE ( cols.table_name = '".self::TF($table)."' OR cols.table_name = '".self::TF(strtolower($table))."' OR cols.table_name = '".self::TF(strtoupper($table))."' )";
+			
+		}
+		
+		$tbl = self::query( $sql, self::VOID );
+		$columns = array();
+		
+		if( self::$dbtype == self::SQLITE ){
+			while( $tbl->fetch() ){
+				$columns[] = $tbl->name;
+			}
+		}
+		
+		if( self::$dbtype == self::MYSQL || self::$dbtype == self::ORACLE ){
+			while( $tbl->fetch() ){
+				$columns[] = $tbl->Field;
+			}
+		}
+		
+		return $columns;	
+		
+	}
+			
 	public static function getPrimaryKey( $table ){				
 		
 		self::use_database();
@@ -1445,67 +1507,67 @@ class DATABASE {
 	}
 	
 	public static function exec_prepared( $sql ){
-		$sql->output();
-		if($sql->isVoid()){
-			return self::query( $sql->prepared(), self::VOID, $sql->values() );
+		$sql->__output();
+		if($sql->__isVoid()){
+			return self::query( $sql->__prepared(), self::VOID, $sql->__values() );
 		}
-		if($sql->isSelect()){
-			return self::query( $sql->prepared(), self::ALL, $sql->values() );
+		if($sql->__isSelect()){
+			return self::query( $sql->__prepared(), self::ALL, $sql->__values() );
 		}
-		if($sql->isDelete()){
-			$return = self::query( $sql->prepared(), self::DEL, $sql->values() );
+		if($sql->__isDelete()){
+			$return = self::query( $sql->__prepared(), self::DEL, $sql->__values() );
 			return $return->count() > 0;
 		}
-		if($sql->isUpdate()){
-			$return = self::query( $sql->prepared(), self::UPD, $sql->values() );
+		if($sql->__isUpdate()){
+			$return = self::query( $sql->__prepared(), self::UPD, $sql->__values() );
 			return $return->count() > 0;
 		}
-		if($sql->isInsert()){
-			$return = self::query( $sql->prepared(), self::INS, $sql->values() );
+		if($sql->__isInsert()){
+			$return = self::query( $sql->__prepared(), self::INS, $sql->__values() );
 			return ( self::$dbtype == self::ORACLE )? $sql->__INSERTID__ : $return;
 		}
 	}
 	
 	public static function exec_statement( $sql ){
-		if($sql->isVoid()){
-			return self::query( $sql->output_str(), self::VOID );
+		if($sql->__isVoid()){
+			return self::query( $sql->__output_str(), self::VOID );
 		}
-		if($sql->isSelect()){
-			return self::query( $sql->output_str(), self::ALL );
+		if($sql->__isSelect()){
+			return self::query( $sql->__output_str(), self::ALL );
 		}
-		if($sql->isDelete()){
-			$return = self::query( $sql->output_str(), self::DEL );
+		if($sql->__isDelete()){
+			$return = self::query( $sql->__output_str(), self::DEL );
 			return $return->count() > 0;
 		}
-		if($sql->isUpdate()){
-			$return = self::query( $sql->output_str(), self::UPD );
+		if($sql->__isUpdate()){
+			$return = self::query( $sql->__output_str(), self::UPD );
 			return $return->count() > 0;
 		}
-		if($sql->isInsert()){
-			$return = self::query( $sql->output_str(), self::INS );
+		if($sql->__isInsert()){
+			$return = self::query( $sql->__output_str(), self::INS );
 			return ( self::$dbtype == self::ORACLE )? $sql->__INSERTID__ : $return;
 		}
 	}
 	
 	public static function count( $sql, $countWhat = false, $whereAddOnly = false, $str = false ){
 		
-		$sql->count( $countWhat, $whereAddOnly, $str );
-		if( $str ){
-			$sql = self::query( $sql->prepared(), self::FET, $sql->values() );
+		$sql->__count( $countWhat, $whereAddOnly, $str );
+		if( !$str ){
+			$sql = self::query( $sql->__prepared(), self::FET, $sql->__values() );
 		}else{
-			$sql = self::query( $sql->prepared(), self::FET );
+			$sql = self::query( $sql->__prepared(), self::FET );
 		}
 		return $sql->rowcount;
 		
 	}
 	
 	public static function startswith( $str, $prefix ){
-		return strpos( $str, $prefix ) === 0;
+		return empty($prefix)? false : strpos( $str, $prefix ) === 0;
 	}
 	
 	public static function endswith( $str, $suffix ){
 		$pos = strlen( $str ) - strlen( $suffix );
-		return strrpos( $str, $suffix ) == $pos;
+		return empty($suffix)? false : strrpos( $str, $suffix ) === $pos;
 	}
 	
 }

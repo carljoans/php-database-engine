@@ -19,6 +19,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
+ 
+/**
+ * @package PHP Database Engine
+ */
+ 
 class RESULTSET extends ArrayObject {
 	
 	public $___result = null;

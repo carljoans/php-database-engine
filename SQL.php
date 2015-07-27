@@ -19,6 +19,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  */
+ 
+/**
+ * @package PHP Database Engine
+ */
+ 
 class SQL{
 
 	public $__TABLE__ = "";
@@ -28,7 +33,9 @@ class SQL{
 	public $__IS_DELETE__ = false;
 	public $__IS_VOID__ = false;
 	public $__COLUMNS__ = array();
+	public $__AVAILABLE_COLUMNS__ = array();
 	public $__LINKS__ = array();
+	public $__KEYS__ = array();
 	public $__ROW__ = 0;
 	public $__ROWARRAY__ = array();
 	public $__ROWARRAY_ADD__ = array();
@@ -56,106 +63,280 @@ class SQL{
 	public $__USE_DB = null;
 	public $__STATEMENT__ = null;
 	public $__VALUES__ = null;
-	public $__SKIP_COMPILE__ = false;
 
-	public function __construct( $__TABLE__ = "" ) {
+	/**
+	 * constructor
+	 * 
+	 * @param string $__TABLE__ optional name of the database table being queried. 
+	 * Mandatory when inserting, updating, deleting or selecting from a table using
+	 * __select(), __insert(), __update() or __delete(). These 3 functions should be
+	 * used first when chaining additional values onto your query.
+	 * i.e. $sql->__select("MyTable")->__where("x=4")->MyColumn("username123");
+	 * The "where" or "join" functions make use of $__TABLE__ to build the sql statement or
+	 * to query columns values in the table, etc.
+	 * 
+	 * @return new class
+	 * 
+	 */
+
+	public function __construct( $__TABLE__ = "", $__USE_DB = "" ) {
 		$this->__TABLE__ = $__TABLE__;
+		$this->__USE_DB = $__USE_DB;
+		$this->__checkTablename( $__TABLE__, false );
 	}
-	
+
+	/**
+	 * inaccessible functions
+	 * 
+	 * used to assign columns for use in an sql statment
+	 * i.e. $sql->__selectFrom("MyTable")->MyColumn("username123");
+	 * 
+	 * @param string $name column name only
+	 * @param string $arg column value only. Only the first argument will be used.
+	 * 
+	 * @return the class object
+	 */
+	 
 	public function __call($name, $arg){
-        if( count($arg) == 1 ){
+		if( count($arg) == 1 ){
 			$this->__COLUMNS__[$name] = $arg[0];
 		}
 		return $this;
-    }
-	
-	public function setIsSelect(){
+	}
+
+	/**
+	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __setIsSelect(){
 		$this->__IS_SELECT__ = true;
 		$this->__IS_DELETE__ = false;
 		$this->__IS_UPDATE__ = false;
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = false;
 	}
-	
-	public function setIsDelete(){
+
+	/**
+	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __setIsDelete(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = true;
 		$this->__IS_UPDATE__ = false;
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = false;
 	}
-	
-	public function setIsUpdate(){
+
+	/**
+	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __setIsUpdate(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = false;
 		$this->__IS_UPDATE__ = true;
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = false;
 	}
-	
-	public function setIsInsert(){
+
+	/**
+	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __setIsInsert(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = false;
 		$this->__IS_UPDATE__ = false;
 		$this->__IS_INSERT__ = true;
 		$this->__IS_VOID__ = false;
 	}
-	
-	public function setIsVoid(){
+
+	/**
+	 * sets a hint to DATABASE and RESULTSET of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __setIsVoid(){
 		$this->__IS_SELECT__ = false;
 		$this->__IS_DELETE__ = false;
 		$this->__IS_UPDATE__ = false;
 		$this->__IS_INSERT__ = false;
 		$this->__IS_VOID__ = true;
 	}
-	
-	public function isSelect(){
+
+	/**
+	 * return a hint of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __isSelect(){
 		return $this->__IS_SELECT__;
 	}
-	
-	public function isDelete(){
+
+	/**
+	 * return a hint of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __isDelete(){
 		return $this->__IS_DELETE__;
 	}
-	
-	public function isUpdate(){
+
+	/**
+	 * return a hint of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __isUpdate(){
 		return $this->__IS_UPDATE__;
 	}
-	
-	public function isInsert(){
+
+	/**
+	 * return a hint of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __isInsert(){
 		return $this->__IS_INSERT__;
 	}
-	
-	public function isVoid(){
+
+	/**
+	 * return a hint of the type of sql statement being used
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __isVoid(){
 		return $this->__IS_VOID__;
 	}
-	
-	public function selectFrom($__TABLE__){
-		$this->setIsSelect();
-		$this->__TABLE__ = $__TABLE__;
-		return $this;
-	}
-	
-	public function deleteFrom($__TABLE__){
-		$this->setIsDelete();
-		$this->__TABLE__ = $__TABLE__;
-		return $this;
-	}
-	
-	public function insertInto($__TABLE__){
-		$this->setIsInsert();
-		$this->__TABLE__ = $__TABLE__;
-		return $this;
-	}
-	
-	public function updateSet($__TABLE__){
-		$this->setIsUpdate();
-		$this->__TABLE__ = $__TABLE__;
-		return $this;
-	}
-	
-	public function where( $add = "", $logic = "AND" ){
+
+	/**
+	 * check if table name is set for  __selectFrom(), __deleteFrom(), __insertInto() and __updateSet()
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __checkTablename( $__TABLE__, $exit=true ){
 		
-		if( $add != "" ){
+		if( $__TABLE__ == "" && $this->__TABLE__ == "" && $exit ){
+			print "Table name must be set.";
+			exit;
+		}
+		
+		if( $__TABLE__ != "" && $this->__TABLE__ == "" ){
+			$this->__TABLE__ = $__TABLE__;
+		}
+		
+		if( $this->__TABLE__ != "" && $this->__USE_DB != "" ){
+			$this->__getColumns();
+		}
+		
+	}
+
+	/**
+	 * creates context for the sql statement being constructed
+	 * 
+	 * @param string $__TABLE__ optional table name
+	 * 
+	 * @return the class object
+	 */
+
+	public function __selectFrom( $__TABLE__ = "" ){
+		$this->__setIsSelect();
+		$this->__checkTablename( $__TABLE__ );
+		return $this;
+	}
+
+	/**
+	 * creates context for the sql statement being constructed
+	 * 
+	 * @param string $__TABLE__ optional table name
+	 * 
+	 * @return the class object
+	 */
+
+	public function __deleteFrom( $__TABLE__ = "" ){
+		$this->__setIsDelete();
+		$this->__checkTablename( $__TABLE__ );
+		return $this;
+	}
+
+	/**
+	 * creates context for the sql statement being constructed
+	 * 
+	 * @param string $__TABLE__ optional table name
+	 * 
+	 * @return the class object
+	 */
+
+	public function __insertInto( $__TABLE__ = "" ){
+		$this->__setIsInsert();
+		$this->__checkTablename( $__TABLE__ );
+		return $this;
+	}
+
+	/**
+	 * creates context for the sql statement being constructed
+	 * 
+	 * @param string $__TABLE__ optional table name
+	 * 
+	 * @return the class object
+	 */
+
+	public function __updateSet( $__TABLE__ = "" ){
+		$this->__setIsUpdate();
+		$this->__checkTablename( $__TABLE__ );
+		return $this;
+	}
+
+	/**
+	 * adds options to be added to the where claus of the sql statement
+	 * 
+	 * @param string $add
+	 * @param string $logic optional. either "OR" or "AND"
+	 * 
+	 * @return the class object
+	 */
+
+	public function __where( $add, $logic = "AND" ){
+		
+		if( !empty($add) ){
 			$this->__WHERECOUNT__++;
 			$this->__WHERE__[$this->__WHERECOUNT__] = $add;
 			$this->__WHERELOGIC__[$this->__WHERECOUNT__] = strtoupper($logic);
@@ -164,45 +345,81 @@ class SQL{
 		return $this;
 			
 	}
-	
-	public function use_database($__USE_DB) {
+
+	/**
+	 * sets the database configuration name
+	 * 
+	 * Normally the name registered through DATABASE and also set by DATABASE.
+	 * 
+	 * @see DATABASE::sql($tablename)
+	 * 
+	 * @param string $__USE_DB the database configuration name
+	 * 
+	 * @return void
+	 */
+
+	public function __use_database($__USE_DB) {
 		$this->__USE_DB = $__USE_DB;
+		$this->__get_database_data();
 	}
-	
-	public function output( $str=false ) {
+
+	/**
+	 * creates the sql statement
+	 * 
+	 * @param boolean $str optional. sets whether or not to return the finalised sql string
+	 * or the class object where $this->__STATEMENT__ and $this->__VALUES__ has been set to
+	 * be passed as an sql statement with bindings.
+	 * 
+	 * @return the class object or sql string
+	 */
+
+	public function __output( $str=false ) {
 		
 		if( trim($this->__TABLE__) != "" ){
-			if($this->isSelect()){
-				return $this->select( $str );
+			if($this->__isSelect()){
+				return $this->__select( $str );
 			}
-			if($this->isDelete()){
-				return $this->delete( $str );
+			if($this->__isDelete()){
+				return $this->__delete( $str );
 			}
-			if($this->isUpdate()){
-				return $this->update( $str );
+			if($this->__isUpdate()){
+				return $this->__update( $str );
 			}
-			if($this->isInsert()){
-				return $this->insert( $str );
+			if($this->__isInsert()){
+				return $this->__insert( $str );
 			}		
 		}
 		
 		return ( $str )? $this->__STATEMENT__ : $this ;
 				
 	}
-	
-	public function select( $str=false ) {
-	
+
+	/**
+	 * creates a select statement
+	 * 
+	 * @param boolean $str optional. sets whether or not to set the sql as a finalised or a prepared string
+	 * 
+	 * @return the class object
+	 */
+
+	public function __select( $str=false ) {
+
 		$DBOVAR = $this->__USE_DB;
-	
+
 		$columns = array();
 		$columns_str = array();
 		$columnvalues = array();
 		
 		$selectadd__ADD = ( count( $this->__SELECTADD__ ) > 0 );
+		$selectadd__AS = ( count( $this->__SELECTAS__ ) > 0 || count( $this->__OTHERSELECTAS__ ) > 0 );
 		$group_BY = ( count( $this->__GROUPBY__ ) > 0 );
 		$select_count_set = isset( $this->__SELECTADD__['count'] );
 		$select_count = ($select_count_set)?$this->__SELECTADD__['count']:"";
-	
+		
+		if( !$group_BY ){
+			$this->__SELECTADD_GROUPBY__ = array();
+		}
+
 		foreach( $this->__COLUMNS__ as $column=>$value ){
 			$__iddot = $this->__TABLE__.count($columns);
 			$columns[] = $DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $column )." = :".$__iddot;
@@ -218,14 +435,14 @@ class SQL{
 		$joins = array();
 		$join = "";		
 		
-		if( count( $this->__GROUPBY__ ) == 0 && count( $this->__SELECTADD_GROUPBY__ ) == 0 && !$selectadd__ADD ){
+		if( count( $this->__GROUPBY__ ) == 0 && count( $this->__SELECTADD_GROUPBY__ ) == 0 && ( $selectadd__ADD || $selectadd__AS ) ){
 			
 			if( count($this->__OTHERSELECTAS__) > 0 ){
 				
 				foreach( $this->__OTHERSELECTAS__ as $table=>$as ){
 					$selectas[] = implode( ", ", $as );
 				}
-				$this->selectAs();
+				$this->__selectAs();
 				
 			}
 			
@@ -241,7 +458,7 @@ class SQL{
 				foreach( $this->__OTHERSELECTAS_GROUPBY__ as $table=>$as ){
 					$selectas[] = implode( ", ", $as );
 				}
-				$this->selectAs();
+				$this->__selectAs();
 			
 			}
 			
@@ -305,10 +522,10 @@ class SQL{
 						
 						foreach( $__cols as $column ){
 							$column = trim( $column );
-							$column = strtolower(str_replace( $this->__TABLE__.".", "", $column )); 
-							foreach( $this->__COLUMNS__ as $col ){
+							$column = strtolower(str_replace( $DBOVAR::TF( $this->__TABLE__ ).".", "", $column )); 
+							foreach( $this->__AVAILABLE_COLUMNS__ as $col ){
 								$col = strtolower($col);
-								if( $col == $column || $this->startswith( $column, $col." " ) ){
+								if( $col == $column || DATABASE::startswith( $column, $DBOVAR::NF( $col )." " ) ){
 									$colcount++;
 								}
 							}
@@ -316,10 +533,10 @@ class SQL{
 						
 					}else{
 						$column = trim( $value );
-						$column = strtolower(str_replace( $this->__TABLE__.".", "", $column )); 
-						foreach( $this->__COLUMNS__ as $col ){
+						$column = strtolower(str_replace( $DBOVAR::TF( $this->__TABLE__ ).".", "", $column )); 
+						foreach( $this->__AVAILABLE_COLUMNS__ as $col ){
 							$col = strtolower($col);
-							if( $col == $column || $this->startswith( $column, $col." " ) ){
+							if( $col == $column || DATABASE::startswith( $column, $DBOVAR::NF( $col )." " ) ){
 								$colcount++;
 							}
 						}
@@ -393,12 +610,20 @@ class SQL{
 		
 		$this->__STATEMENT__ = $sql;
 		$this->__VALUES__ = $columnvalues;
-		$this->fix_where();
+		$this->__fix_where();
 		return $this;
-	
+
 	}
-	
-	public function insert( $str=false ){	
+
+	/**
+	 * creates an insert statement
+	 * 
+	 * @param boolean $str optional. sets whether or not to set the sql as a finalised or a prepared string
+	 * 
+	 * @return the class object
+	 */
+
+	public function __insert( $str=false ){	
 		
 		$DBOVAR = $this->__USE_DB;
 		
@@ -406,12 +631,12 @@ class SQL{
 		$insert_preps = array();
 		$insert_preps_str = array();
 		$insert_columnvalues = array();
-	
+
 		foreach( $this->__COLUMNS__ as $column=>$value ){
 			
 			$insert_columns[] = $DBOVAR::NF( $column );				
 				
-			if( $this->is_function( $value ) ){
+			if( $this->__is_function( $value ) ){
 				$insert_preps[] = $value;
 				$insert_preps_str[] = $value;
 			}else{
@@ -431,11 +656,11 @@ class SQL{
 		$primaryKeySet = false;
 				
 		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
-			$primaryKey = $this->getfirstkey( true );
+			$primaryKey = $this->__getfirstkey( true );
 		}
 		
-		foreach( $insert_columns as $bindname=>$bindvalue ){
-			if( strtolower($primaryKey) == strtolower(ltrim( $bindname, ":" )) ){
+		foreach( $insert_columns as $columnname ){
+			if( strtolower($primaryKey) == strtolower($columnname) ){
 				$primaryKeySet = true;
 			}
 		}
@@ -443,7 +668,7 @@ class SQL{
 		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
 			if( !$primaryKeySet ){
 				
-				$this->__INSERTID__ = $DBOVAR::SEQ_NEXT( $this->tablename() );	
+				$this->__INSERTID__ = $DBOVAR::SEQ_NEXT( $this->__tablename() );	
 				$insert_columnvalues[":".$primaryKey] = $this->__INSERTID__;
 				$primaryKeyValue = ":".$primaryKey;
 				$primaryKeyValue_str = $primaryKeyValue.",";
@@ -461,21 +686,29 @@ class SQL{
 		
 		$this->__STATEMENT__ = $sql;
 		$this->__VALUES__ = $insert_columnvalues;
-		$this->fix_where();
-		$this->check_string_literal();
+		$this->__fix_where();
+		$this->__check_string_literal();
 		
 		return $this;
 			
 	}
-	
-	public function delete($str=false){	
+
+	/**
+	 * creates a delete statement
+	 * 
+	 * @param boolean $str optional. sets whether or not to set the sql as a finalised or a prepared string
+	 * 
+	 * @return the class object
+	 */
+
+	public function __delete($str=false){	
 		
 		$DBOVAR = $this->__USE_DB;
 		$columns = array();
 		$columnvalues = array();
 		$columns_str = array();
 		
-		$primaryKey = $this->getfirstkey( true );
+		$primaryKey = $this->__getfirstkey( true );
 		$primaryKey_found = false;
 		foreach( $this->__COLUMNS__ as $column=>$value ){
 			if( !empty($primaryKey) && strtolower($column) == strtolower($primaryKey) ){
@@ -515,15 +748,24 @@ class SQL{
 			$sql = "DELETE FROM ".$DBOVAR::TF($this->__TABLE__).$where ;
 			$this->__STATEMENT__ = $sql;
 			$this->__VALUES__ = $columnvalues;
-			$this->fix_where();
+			$this->__fix_where();
 			
 		}
 		
 		return $this;
 			
 	}
-	
-	public function update($str=false){	
+
+	/**
+	 * creates an update statement
+	 * 
+	 * @param boolean $str optional. sets whether or not to set the sql 
+	 * as a finalised or a prepared string
+	 * 
+	 * @return the class object
+	 */
+
+	public function __update($str=false){	
 		
 		$DBOVAR = $this->__USE_DB;
 		$where_columns = array();
@@ -534,8 +776,8 @@ class SQL{
 		$update_columns_str = array();
 		$update_columnvalues = array();
 		
-		$primaryKey = $DBOVAR::getPrimaryKey( $this->tablename() );
-	
+		$primaryKey = $DBOVAR::getPrimaryKey( $this->__tablename() );
+
 		foreach( $this->__COLUMNS__ as $column=>$value ){
 			if( strtolower($column) == strtolower($primaryKey) ){
 				if( count( $this->__WHERE__ ) == 0 ){						
@@ -545,7 +787,7 @@ class SQL{
 				}
 			}else{
 				
-				if( $this->is_function( $value ) ){
+				if( $this->__is_function( $value ) ){
 					$update_columns[] = $DBOVAR::NF( $column )." = ".$value;
 				}else{
 					$update_columns[] = $DBOVAR::NF( $column )." = :".$column;
@@ -555,7 +797,7 @@ class SQL{
 				
 			}
 		}
-	
+
 		if( count( $this->__WHERE__ ) == 0 ){
 			
 			foreach( $where_columnvalues as $key=>$column ){
@@ -581,17 +823,37 @@ class SQL{
 			$sql = "UPDATE ".$DBOVAR::TF($this->__TABLE__)." SET ".implode( ", ", $update_columns )." ".$where ;
 			$this->__STATEMENT__ = $sql;
 			$this->__VALUES__ = $update_columnvalues;
-			$this->fix_where();
-			$this->check_string_literal();
+			$this->__fix_where();
+			$this->__check_string_literal();
 		}
 			
 	}
-	
-	public function lastInsertId(){
+
+	/**
+	 * returns the last id inserted after an insert statement
+	 * 
+	 * @param void
+	 * 
+	 * @return integer
+	 */
+
+	public function __lastInsertId(){
 		return $this->__INSERTID__;
 	}
-	
-	public function check_string_literal(){
+
+	/**
+	 * checks string literal
+	 * 
+	 * checks whether the character length does not exceed the maximum 
+	 * for the database platform string literal limit and prepares the
+	 * bound values accordingly.
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */
+
+	public function __check_string_literal(){
 		
 		$str_sql = $this->__STATEMENT__;
 		$values = $this->__VALUES__;
@@ -611,7 +873,7 @@ class SQL{
 		//$subvaluestxt = array();
 		
 		foreach( $values as $bindname=>$bindvalue ){
-	
+
 			if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::MYSQL ){
 				
 				if( strlen( $bindvalue ) > 65535 ){
@@ -698,62 +960,114 @@ class SQL{
 		$this->__VALUES__ = $values;
 		
 	}
-	
-	public function prepared(){
+
+	/**
+	 * returns the sql statement with bindings
+	 * 
+	 * @param void
+	 * 
+	 * @return string
+	 */
+
+	public function __prepared(){
 		return $this->__STATEMENT__;
 	}
-	
-	public function values(){
+
+	/**
+	 * returns the sql bindings
+	 * 
+	 * @param void
+	 * 
+	 * @return associative array
+	 */
+
+	public function __values(){
 		return $this->__VALUES__;
 	}
-	
-	public function output_str(){
-		$this->output( true );
+
+	/**
+	 * returns the finalised sql statement
+	 * 
+	 * @param void
+	 * 
+	 * @return string
+	 */
+
+	public function __output_str(){
+		$this->__output( true );
 		return $this->__STATEMENT__;
 	}
-	
-	public function count_str( $countWhat = false, $whereAddOnly = false ){
-		$this->count( $countWhat, $whereAddOnly, true );
+
+	/**
+	 * returns the finalised sql statement
+	 * 
+	 * @see __count()
+	 * 
+	 * @param boolean $countWhat optional
+	 * @param boolean $whereAddOnly optional 
+	 * 
+	 * @return string
+	 */
+
+	public function __count_str( $countWhat = false, $whereAddOnly = false ){
+		$this->__count( $countWhat, $whereAddOnly, true );
 		return $this->__STATEMENT__;
 	}
-	
-	public function count( $countWhat = false, $whereAddOnly = false, $str=false ){
+
+	/**
+	 * returns the finalised sql statement
+	 * 
+	 * @param boolean $countWhat optional
+	 * @param boolean $whereAddOnly optional 
+	 * @param boolean $str optional. sets whether or not to set the sql 
+	 * as a finalised or a prepared string 
+	 * 
+	 * @return string or the class object
+	 */
+
+	public function __count( $countWhat = false, $whereAddOnly = false, $str=false ){
 		
 		$DBOVAR = $this->__USE_DB;
 		if (is_bool($countWhat)) {
-            $whereAddOnly = $countWhat;
-        }
-        
-        $table = $this->__TABLE__;
-        $key = $this->getfirstkey();        
-        
-        // support distinct on default keys.
-        $countWhat = (strtoupper($countWhat) == 'DISTINCT') ? "DISTINCT ".$DBOVAR::TF( $table.".".$key ) : $countWhat;        
-        $countWhat = is_string($countWhat) ? $countWhat : $DBOVAR::TF( $table.".".$key );
-        $as = "rowcount";
-        $this->__COUNT__ = true;
-        $this->selectAdd( "COUNT( ".$countWhat." ) AS ".$DBOVAR::NF( $as ) ); 
-        
-        return $this->output($str);
+			$whereAddOnly = $countWhat;
+		}
+		
+		$table = $this->__TABLE__;
+		$key = $this->__getfirstkey();        
+		
+		// support distinct on default keys.
+		$countWhat = (strtoupper($countWhat) == 'DISTINCT') ? "DISTINCT ".$DBOVAR::TF( $table.".".$key ) : $countWhat;        
+		$countWhat = is_string($countWhat) ? $countWhat : $DBOVAR::TF( $table.".".$key );
+		$as = "rowcount";
+		$this->__COUNT__ = true;
+		$this->__selectAdd( "COUNT( ".$countWhat." ) AS ".$DBOVAR::NF( $as ) ); 
+		
+		return $this->__output($str);
 		
 	}
-	
-	private function get_database_data(){
+
+	/**
+	 * fetches column data
+	 * 
+	 * @param void 
+	 * 
+	 * @return void
+	 */
+
+	private function __get_database_data(){
 		$DBOVAR = $this->__USE_DB;
 		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
 			
 			if( !isset(DATABASE::$database_data[$this->__USE_DB]) ){
 				
-				$db_data = $DBOVAR::query( "select * from all_tab_columns where lower(owner)='".strtolower(DATABASE::$databases[$this->__USE_DB]['user'])."'", DATABASE::ALL );
+				$db_data = $DBOVAR::query( "select * from all_tab_columns where lower(owner)='".strtolower(DATABASE::$databases[$this->__USE_DB]['user'])."'", DATABASE::VOID );
 				DATABASE::$database_data[$this->__USE_DB] = array();
 				
-				foreach( $db_data as $row ){
+				while( $db_data->fetch() ){
 					
 					$entry = array();
-					foreach( $row as $column=>$value ){
-						if( !is_int( $column ) ){
-							$entry[strtolower($column)] = is_resource( $value ) ? stream_get_contents( $value ) : $value ;
-						}
+					foreach( $db_data as $column=>$value ){
+						$entry[strtolower($column)] = $value ;
 					}
 					
 					if( !isset( DATABASE::$database_data[$this->__USE_DB][strtolower($entry["table_name"])] ) ){
@@ -765,17 +1079,21 @@ class SQL{
 				}
 				
 			}
-			
-			
-			
+						
 		}
 	}
-	
-	private function find_column_datatype_ora( $column ){
+
+	/**
+	 * returns column type
+	 * 
+	 * @param string $column 
+	 * 
+	 * @return string
+	 */
+
+	private function __find_column_datatype_ora( $column ){
 		
 		if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
-			$format = array( DATABASE::QUOTES, strrev(DATABASE::QUOTES), DATABASE::PREPEND, strrev(DATABASE::PREPEND) );
-			$column = str_replace( $format, "", $column );
 			
 			if( preg_match( '/\./', $column ) ){
 				$column = explode( ".", $column );
@@ -783,7 +1101,7 @@ class SQL{
 				$column = $column[0];
 			}
 			
-			foreach( DATABASE::$database_data[$this->__USE_DB][strtolower( $this->prependTableName( $this->__TABLE__ ) )] as $row ){
+			foreach( DATABASE::$database_data[$this->__USE_DB][strtolower( $this->__prependTableName( $this->__TABLE__ ) )] as $row ){
 				
 				if( strtolower( $row['column_name'] ) == strtolower( $column ) ){
 					return $row['data_type'];
@@ -794,11 +1112,38 @@ class SQL{
 		return "";
 		
 	}
-	
-	public function getfirstkey( $primary=false ){
+
+	/**
+	 * returns all columns in the Table
+	 * 
+	 * @param void  
+	 * 
+	 * @return array
+	 */
+
+	public function __getColumns(){
 		
 		$DBOVAR = $this->__USE_DB;
-		$primaryKey = $DBOVAR::getPrimaryKey( $this->tablename() );
+		
+		$this->__AVAILABLE_COLUMNS__ = ( $this->__tablename() != "" && empty($this->__AVAILABLE_COLUMNS__) ) ? $DBOVAR::getColumns( $this->__tablename() ) : $this->__AVAILABLE_COLUMNS__ ;
+		
+		return $this->__AVAILABLE_COLUMNS__;
+		
+	}
+
+	/**
+	 * returns first key
+	 * 
+	 * @param boolean $primary optional. sets whether to return
+	 * the primary key or one specified by the user through $__KEYS__  
+	 * 
+	 * @return string
+	 */
+
+	public function __getfirstkey( $primary=false ){
+		
+		$DBOVAR = $this->__USE_DB;
+		$primaryKey = $DBOVAR::getPrimaryKey( $this->__tablename() );
 		
 		if( $primaryKey != "" || $primary ){
 			return $primaryKey;
@@ -811,8 +1156,17 @@ class SQL{
 		return "";
 		
 	}
-	
-	public function replaceTableName( $name ){
+
+	/**
+	 * this function is redundant. 
+	 * 
+	 * @ignore
+	 * @param string $name  
+	 * 
+	 * @return string
+	 */
+
+	public function __replaceTableName( $name ){
 		
 		$tempname = $name;
 		
@@ -828,8 +1182,6 @@ class SQL{
 			$name = $name[0];
 		}
 		
-		$name = TABLENAME::finalname($name);
-		
 		if( strpos( $this->__PREPEND_TABLENAME, $tempname ) === 0 ){
 			$name = $this->__PREPEND_TABLENAME.$name;
 		}
@@ -837,10 +1189,18 @@ class SQL{
 		return $name.$column;
 		
 	}
-	
-	public function prependTableName( $name ){
+
+	/**
+	 * adds the defined prefix to table name 
+	 * 
+	 * @param string $name Table name 
+	 * 
+	 * @return string
+	 */
+
+	public function __prependTableName( $name ){
 		
-		$name = $this->replaceTableName( $name );
+		$name = $this->__replaceTableName( $name );
 		
 		if( $this->__PREPEND_TABLENAME != "" ){
 			if( strpos( $this->__PREPEND_TABLENAME, $name ) !== 0 ){
@@ -851,14 +1211,22 @@ class SQL{
 		return $name;
 		
 	}
+
+	/**
+	 * sets the sort order for returned results
+	 * 
+	 * @param string $orderby optional
+	 * 
+	 * @return the class object
+	 */
 		
-	public function orderBy( $orderby="" ){
+	public function __orderBy( $orderby="" ){
 		
 		$DBOVAR = $this->__USE_DB;
 		$orderby = str_replace( array( "`",'"' ), "", $orderby );
 		$orderby = trim( $orderby );
 		$direction = "ASC";
-	
+
 		if( preg_match( '/DESC/i', $orderby ) ){
 			$direction = "DESC";
 		}
@@ -880,15 +1248,24 @@ class SQL{
 		}else{
 			$orderby = preg_match('/\./',$orderby) ? $DBOVAR::TF(trim($orderby)) : $DBOVAR::NF(trim($orderby));
 		}
-	
+
 		$this->__ORDERDIRECTION__ = $direction;
 		$this->__ORDERBY__ = $orderby;
 		
 		return $this;
 		
 	}
-	
-	public function limit( $from, $count=0 ){
+
+	/**
+	 * sets the limit for returned results 
+	 * 
+	 * @param integer $from if $count=0 $from is count else it is offset
+	 * @param integer $count optional
+	 * 
+	 * @return the class object
+	 */
+
+	public function __limit( $from, $count=0 ){
 		
 		$this->__LIMIT__["from"] = $from; 
 		$this->__LIMIT__["count"] = $count; 
@@ -896,15 +1273,23 @@ class SQL{
 		return $this;
 				
 	}
-	
-	/*
-	 FOR Oracle:
-	 If using a groupBy, the selectAdd must contain the same columns as the groupBy. The developer must see to this manually. 
-	 If only using the selectAdd, go nuts.
-	 If using only a groupBy and not using the selectAdd TABLE will automatically balance out the selected columns with the groupBy.
+
+	/**
+	 * adds columns to be returned in a select statement 
+	 * 
+	 * FOR Oracle:
+	 * If using a groupBy, the selectAdd must contain the same columns 
+	 * as the groupBy. The developer must see to this manually.
+	 * If only using the selectAdd, go nuts.
+	 * If using only a groupBy and not using the selectAdd SQL will 
+	 * automatically balance out the selected columns with the groupBy.
+	 * 
+	 * @param string $add 
+	 * 
+	 * @return the class object
 	 */
-	
-	public function selectAdd( $add = "" ){	
+
+	public function __selectAdd( $add = "" ){	
 		
 		if( $add != "" ){
 			if( $this->__COUNT__ ){
@@ -913,16 +1298,27 @@ class SQL{
 				$this->__SELECTADD__[] = $add;
 			}
 		}
+		
+		return $this;
 			
 	}
-	
-	/*
-	 FOR Oracle:
-	 If using a selectAdd the groupBy must contain the same columns as the selectAdd. The developer must see to this manually. 
-	 If only using a groupBy and not using the selectAdd TABLE will automatically balance out the selected columns with the groupBy.
+
+	/**
+	 * adds GROUP BY clause to sql statement 
+	 * 
+	 * FOR Oracle:
+	 * If using a selectAdd the groupBy must contain the same columns 
+	 * as the selectAdd. The developer must see to this manually.
+	 * If only using a groupBy and not using the selectAdd SQL will 
+	 * automatically balance out the selected columns with the groupBy.
+	 * 
+	 * @param string $groupBy 
+	 * @param boolean $selectAdd used privately by SQL
+	 * 
+	 * @return the class object
 	 */
-	
-	public function groupBy( $groupBy = "", $selectAdd=false ){	
+
+	public function __groupBy( $groupBy = "", $selectAdd=false ){	
 		
 		$DBOVAR = $this->__USE_DB;
 		$group__BY = ($selectAdd)? "__SELECTADD_GROUPBY__" : "__GROUPBY__" ;
@@ -934,7 +1330,7 @@ class SQL{
 				$this->$group__BY = array_merge ( $groupBy, $this->$group__BY );
 			}else{
 				if( !preg_match( '/\./', $groupBy ) ){
-					$groupBy = $DBOVAR::TF($this->tablename()).".".$groupBy;
+					$groupBy = $DBOVAR::TF($this->__tablename()).".".$groupBy;
 				}
 				$array = $this->$group__BY;
 				$array[] = $groupBy;
@@ -942,62 +1338,77 @@ class SQL{
 			}
 			$this->$group__BY = array_unique($this->$group__BY);
 		}
+		
+		return $this;
 			
 	}
-	
-	private function add_selectAs_groupBy( $groupBy ){
-		
-		$format = array( DATABASE::QUOTES, strrev(DATABASE::QUOTES), DATABASE::PREPEND, strrev(DATABASE::PREPEND) );
-		$b = str_replace( $format, "", $groupBy );
+
+	/**
+	 * adds columns to be returned in a select statement 
+	 * 
+	 * @param string $groupBy 
+	 * 
+	 * @return void
+	 */
+
+	private function __add_selectAs_groupBy( $groupBy ){
 		
 		if( count( $this->__SELECTADD_GROUPBY__ ) > 0 ){
 			$group = $this->__SELECTADD_GROUPBY__;
 			foreach( $group as $element  ){
-				$a = str_replace( $format, "", $element );
-				if( $b == $a ){
+				if( $groupBy == $element ){
 					return;
 				}
 			}
 		}
 		
-		$this->groupBy( $groupBy, true );
+		$this->__groupBy( $groupBy, true );
 		
 	}
-	
-	public function selectAs( $table=NULL, $format="%s" ){
+
+	/**
+	 * creates column aliases in a select statement 
+	 * 
+	 * @param string $table optional 
+	 * @param string $format optional 
+	 * 
+	 * @return the class object
+	 */
+
+	public function __selectAs( $table=NULL, $format="%s" ){
 		
 		$DBOVAR = $this->__USE_DB;
 		if( $table == NULL ){
 			
-			foreach( $this->__COLUMNS__ as $column ){
+			foreach( $this->__AVAILABLE_COLUMNS__ as $column ){
 				
 				$table_column_pair = $DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $column );
-				$column_name = ( strtolower( $this->find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
+				$column_name = ( strtolower( $this->__find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
 				$this->__SELECTAS__[$column] = $table_column_pair." AS ".$DBOVAR::NF( sprintf( $format , $column ) );
 				
 				if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
 					$this->__SELECTAS_GROUPBY__[$column] = $column_name." AS ".$DBOVAR::NF( sprintf( $format , $column ) );
-					$this->add_selectAs_groupBy( $column_name );		
+					$this->__add_selectAs_groupBy( $column_name );		
 				}
 				
 			}
 			
-		}else if( $table instanceof TABLE  ){
+		}else if( $table instanceof SQL  ){
 			
 			$format = ( $format == "%s" )? $table->__TABLE__."_%s" : $format;
 			
 			$this->__OTHERSELECTAS__[$table->__TABLE__] = array();
 			$this->__OTHERSELECTAS_GROUPBY__[$table->__TABLE__] = array();
 			
-			foreach( $table->__COLUMNS__ as $column ){
+			foreach( $table->__AVAILABLE_COLUMNS__ as $column ){
 				
 				$table_column_pair = $DBOVAR::TF( $table->__TABLE__ ).".".$DBOVAR::NF( $column );
-				$column_name = ( strtolower( $this->find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
+				$column_name = ( strtolower( $this->__find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
 				
 				$this->__OTHERSELECTAS__[$table->__TABLE__][] = $table_column_pair." AS ".$DBOVAR::NF( sprintf( $format , $column ) );	
 				if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
 					$this->__OTHERSELECTAS_GROUPBY__[$table->__TABLE__][] = $column_name." AS ".$DBOVAR::NF( sprintf( $format , $column ) );
-					$this->add_selectAs_groupBy( $column_name );				 
+					$this->__add_selectAs_groupBy( $column_name );				 
 				}	
 				
 			}
@@ -1006,26 +1417,44 @@ class SQL{
 			
 			$this->__TABLEALIAS__ = $table;
 			
-			foreach( $this->__COLUMNS__ as $column ){
+			foreach( $this->__AVAILABLE_COLUMNS__ as $column ){
 				$table_column_pair = $DBOVAR::TF( $table ).".".$DBOVAR::NF( $column );
-				$column_name = ( strtolower( $this->find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
+				$column_name = ( strtolower( $this->__find_column_datatype_ora( $column ) ) == "clob" )? "to_char(".$table_column_pair.")" : $table_column_pair;
 				$this->__SELECTAS__[$column] = $table_column_pair." AS ".$DBOVAR::NF( sprintf( $format , $column ) );	
 				if( DATABASE::$databases[$this->__USE_DB]['type'] == DATABASE::ORACLE ){
 					$this->__SELECTAS_GROUPBY__[$column] = $column_name." AS ".$DBOVAR::NF( sprintf( $format , $column ) );
-					$this->add_selectAs_groupBy( $DBOVAR::TF( $table ).".".$DBOVAR::NF( $column ) );			
+					$this->__add_selectAs_groupBy( $DBOVAR::TF( $table ).".".$DBOVAR::NF( $column ) );			
 				}	 			
 			}
 			
 		}
 		
+		return $this;
+		
 	}
-	
-	public function joinOnAdd( $tablename, $join, $joinType='INNER' ){
+
+	/**
+	 * this function is not used. 
+	 * 
+	 * @ignore
+	 */
+
+	public function __joinOnAdd( $tablename, $join, $joinType='INNER' ){
 		$DBOVAR = $this->__USE_DB;
 		$this->__JOINONADD__[$tablename] = $joinType." JOIN ".$DBOVAR::NF($tablename)." ON ".$join;
 	}
-	
-	public function createLink( $table, $column=null, $linkto=null ){
+
+	/**
+	 * creates link between tables 
+	 * 
+	 * @param string $table the table to link to 
+	 * @param string $column optional only to pass $table as array 
+	 * @param string $linkto optional only to pass $table as array 
+	 * 
+	 * @return the class object
+	 */
+
+	public function __createLink( $table, $column=null, $linkto=null ){
 		
 		if( $table instanceof SQL  ){
 			$this->__LINKS__[$linkto] = $table->__TABLE__.":".$column;
@@ -1033,15 +1462,45 @@ class SQL{
 			$this->__LINKS__ = $table;
 		}
 		
-	}
+		return $this;
 		
-	public function joinAdd( $table, $joinType='INNER', $tableAs="", $columnAs="" ){	
+	}
+
+	/**
+	 * checks whether a column exists in a table
+	 * 
+	 * __AVAILABLE_COLUMNS__ is set by the user. This a list of all
+	 * columns in the table.
+	 * 
+	 * @param string $field
+	 * 
+	 * @return boolean
+	 */
+
+	public function __hasColumn( $field ) {
+
+		return in_array( trim( $field ), $this->__AVAILABLE_COLUMNS__ );
+		
+	}
+
+	/**
+	 * adds join clause to sql statement
+	 * 
+	 * @param string $table
+	 * @param string $joinType optional
+	 * @param string $tableAs optional
+	 * @param string $columnAs optional
+	 * 
+	 * @return the class object
+	 */
+		
+	public function __joinAdd( $table, $joinType='INNER', $tableAs="", $columnAs="" ){	
 		$DBOVAR = $this->__USE_DB;		
 		
 		if( $table instanceof SQL  ){	
 			
 			$link_found = false;
-			$table->selectAs( $tableAs );
+			$table->__selectAs( $tableAs );
 			$this->__JOINSELECTADD__[$table->__TABLE__] = $table->__SELECTAS__;
 			if( count( $table->__JOINSELECTADD__ ) > 0 ){
 				foreach( $table->__JOINSELECTADD__ as $jsat=>$joinselectadd ){
@@ -1051,7 +1510,7 @@ class SQL{
 			
 			if( count( $table->__GROUPBY__ ) > 0 ){
 				foreach( $table->__GROUPBY__ as $groupBy ){
-					$this->add_selectAs_groupBy( $groupBy );
+					$this->__add_selectAs_groupBy( $groupBy );
 				}
 			}
 			
@@ -1070,12 +1529,9 @@ class SQL{
 				
 				$this->__JOIN__[$__table.".".$__column.".".$__link] = $this->__JOINONADD__[$table->__TABLE__];
 				
-				foreach( $table->__COLUMNS__ as $column ){
+				foreach( $table->__COLUMNS__ as $column=>$value ){
 					$column = strtolower($column);
-					if( isset( $table->$column ) ){
-						$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $table->$column;
-					}
-					
+					$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $value;					
 				}
 				
 				if( count( $table->__JOIN__ ) > 0 ){
@@ -1094,7 +1550,7 @@ class SQL{
 			
 			if( !$link_found && $tableAs != "" && $columnAs != "" ){
 				
-				if( $this->hasColumn( $columnAs ) && $table->hasColumn( $columnAs ) ){
+				if( $this->__hasColumn( $columnAs ) && $table->__hasColumn( $columnAs ) ){
 					
 					$link_found = true;
 					
@@ -1104,12 +1560,9 @@ class SQL{
 					
 					$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted .".".$DBOVAR::NF( $__column )."";
 					
-					foreach( $table->__COLUMNS__ as $column ){
+					foreach( $table->__COLUMNS__ as $column=>$value ){
 						$column = strtolower($column);
-						if( isset( $table->$column ) ){
-							$this->__JOINWHERE__[$__use_table_formatted][$column] = $table->$column;
-						}
-						
+						$this->__JOINWHERE__[$__use_table_formatted][$column] = $value;						
 					}
 					
 					if( count( $table->__JOIN__ ) > 0 ){
@@ -1134,50 +1587,56 @@ class SQL{
 				
 				foreach( $table->__LINKS__ as $columnname=>$link  ){
 		
-					$linked = $link;
+					$linkers = $link;
 		
-					if( is_array( $linked ) ){
+					if( is_array( $linkers ) ){
 						
 						continue;					
 						
 					}
-		
-					$linked = explode( ":", $linked );
-					$table__ = trim( $linked[0] );
-					$table_link = trim( $linked[1] );
 					
-					if( $table__ == $this->__TABLE__ ){
+					$links = array($linkers);
+			
+					if( preg_match( '/,/', $linkers ) ){
+						$links = explode( ",", $linkers );
+					}
+					foreach( $links as $linked ){
 						
-						$__table = $table->__TABLE__;
-						$__column = $columnname;
-						$__link = $table_link;
+						$linked = explode( ":", $linked );
+						$table__ = trim( $linked[0] );
+						$table_link = trim( $linked[1] );
 						
-						
-						$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted .".".$DBOVAR::NF( $__column )."";
-						
-						foreach( $table->__COLUMNS__ as $column ){
-							$column = strtolower($column);
-							if( isset( $table->$column ) ){
-								$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $table->$column;
+						if( $table__ == $this->__TABLE__ ){
+							
+							$__table = $table->__TABLE__;
+							$__column = $columnname;
+							$__link = $table_link;
+							
+							
+							$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted .".".$DBOVAR::NF( $__column )."";
+							
+							foreach( $table->__COLUMNS__ as $column=>$value ){
+								$column = strtolower($column);
+								$this->__JOINWHERE__[ $__use_table_formatted ][$column] = $value;
 							}
 							
-						}
-						
-						if( count( $table->__JOIN__ ) > 0 ){
-							foreach( $table->__JOIN__ as $joinname=>$join ){
-								$this->__JOIN__[$joinname] = $join;
+							if( count( $table->__JOIN__ ) > 0 ){
+								foreach( $table->__JOIN__ as $joinname=>$join ){
+									$this->__JOIN__[$joinname] = $join;
+								}
 							}
-						}
-						
-						if( count( $table->__JOINWHERE__ ) > 0 ){
-							foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
-								$this->__JOINWHERE__[$joinwherename] = $joinwhere;
-							}
-						}			
-						
-						$link_found = true;
-						
-						break;
+							
+							if( count( $table->__JOINWHERE__ ) > 0 ){
+								foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
+									$this->__JOINWHERE__[$joinwherename] = $joinwhere;
+								}
+							}			
+							
+							$link_found = true;
+							
+							break;
+							
+						}	
 						
 					}
 					
@@ -1189,48 +1648,55 @@ class SQL{
 				
 				foreach( $this->__LINKS__ as $columnname=>$link  ){
 		
-					$linked = $link;
+					$linkers = $link;
 		
-					if( is_array( $linked ) ){
+					if( is_array( $linkers ) ){
 						
 						continue;					
 						
 					}
-		
-					$linked = explode( ":", $linked );
-					$table__ = trim( $linked[0] );
-					$table_link = trim( $linked[1] );
 					
-					if( $table__ == $table->__TABLE__ ){
+					$links = array($linkers);
+			
+					if( preg_match( '/,/', $linkers ) ){
+						$links = explode( ",", $linkers );
+					}
+					
+					foreach( $links as $linked ){
 						
-						$__table = $table->__TABLE__;
-						$__column = $table_link;
-						$__link = $columnname;
+						$linked = explode( ":", $linked );
+						$table__ = trim( $linked[0] );
+						$table_link = trim( $linked[1] );
 						
-						
-						$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted.".".$DBOVAR::NF( $__column )."";
-						
-						foreach( $table->__COLUMNS__ as $column ){
-							$column = strtolower($column);
-							if( isset( $table->$column ) ){
-								$this->__JOINWHERE__[$__use_table_formatted][$column] = $table->$column;
+						if( $table__ == $table->__TABLE__ ){
+							
+							$__table = $table->__TABLE__;
+							$__column = $table_link;
+							$__link = $columnname;
+							
+							
+							$this->__JOIN__[$__table.".".$__column.".".$__link] = $joinType." JOIN ".$DBOVAR::TF( $__table )." ".( ( $tableAs != "" && $tableAs != $__table )? $DBOVAR::NF( $tableAs ) : "" )." ON ".$DBOVAR::TF( $this->__TABLE__ ).".".$DBOVAR::NF( $__link )." = ". $__use_table_formatted.".".$DBOVAR::NF( $__column )."";
+							
+							foreach( $table->__COLUMNS__ as $column=>$value ){
+								$column = strtolower($column);
+								$this->__JOINWHERE__[$__use_table_formatted][$column] = $value;
 							}
 							
-						}
-						
-						if( count( $table->__JOIN__ ) > 0 ){
-							foreach( $table->__JOIN__ as $joinname=>$join ){
-								$this->__JOIN__[$joinname] = $join;
+							if( count( $table->__JOIN__ ) > 0 ){
+								foreach( $table->__JOIN__ as $joinname=>$join ){
+									$this->__JOIN__[$joinname] = $join;
+								}
 							}
-						}
-						
-						if( count( $table->__JOINWHERE__ ) > 0 ){
-							foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
-								$this->__JOINWHERE__[$joinwherename] = $joinwhere;
-							}
-						}					
-						
-						break;
+							
+							if( count( $table->__JOINWHERE__ ) > 0 ){
+								foreach( $table->__JOINWHERE__ as $joinwherename=>$joinwhere ){
+									$this->__JOINWHERE__[$joinwherename] = $joinwhere;
+								}
+							}					
+							
+							break;
+							
+						}	
 						
 					}
 					
@@ -1239,15 +1705,33 @@ class SQL{
 			}
 			
 		}
+		
+		return $this;
 			
-	}		
-	
-	public function tablename(){
+	}
+
+	/**
+	 * returns the table name being used
+	 * 
+	 * @param void
+	 * 
+	 * @return string
+	 */		
+
+	public function __tablename(){
 		##TODO USING TABLENAME
 		return $this->__TABLE__;
 	}
-	
-	public function is_function( $value ){
+
+	/**
+	 * checks whether the bound value is a function
+	 * 
+	 * @param string $value
+	 * 
+	 * @return boolean
+	 */		
+
+	public function __is_function( $value ){
 		
 		$is_function = false;
 		foreach( DATABASE::$functions[DATABASE::$databases[$this->__USE_DB]['type']] as $functions ){
@@ -1257,29 +1741,40 @@ class SQL{
 		}
 		return $is_function;
 	}
-	
-	public function compiled_str( $sql, $void=false ) {
+
+	/**
+	 * accepts a finalised sql statement and prepares SQL for DATABASE
+	 * 
+	 * @param string $sql
+	 * @param boolean $void set whether or not the statement is
+	 * an insert, update, delete or typical select statement,
+	 * i.e. select * from dual
+	 * 
+	 * @return the class object
+	 */	
+
+	public function __compiled_str( $sql, $void=false ) {
 		
-		$this->setIsVoid();
+		$this->__setIsVoid();
 		
 		if( is_bool($void) ){
 			
 			if( !$void ){
 				
-				if( DATABASE::startswith( $sql, "SELECT" ) ){
-					$this->setIsSelect();
+				if( DATABASE::startswith( strtoupper($sql), "SELECT" ) ){
+					$this->__setIsSelect();
 				}
 				
-				if( DATABASE::startswith( $sql, "UPDATE" ) ){
-					$this->setIsUpdate();
+				if( DATABASE::startswith( strtoupper($sql), "UPDATE" ) ){
+					$this->__setIsUpdate();
 				}
 				
-				if( DATABASE::startswith( $sql, "DELETE" ) ){
-					$this->setIsDelete();
+				if( DATABASE::startswith( strtoupper($sql), "DELETE" ) ){
+					$this->__setIsDelete();
 				}
 				
-				if( DATABASE::startswith( $sql, "INSERT" ) ){
-					$this->setIsInsert();
+				if( DATABASE::startswith( strtoupper($sql), "INSERT" ) ){
+					$this->__setIsInsert();
 				}
 				
 			}
@@ -1287,31 +1782,50 @@ class SQL{
 		}elseif( is_int($void) ){
 			
 			if( $void === DATABASE::ALL ){
-				$this->setIsSelect();
+				$this->__setIsSelect();
 			}
 			
 			if( $void === DATABASE::UPD ){
-				$this->setIsUpdate();
+				$this->__setIsUpdate();
 			}
 			
 			if( $void === DATABASE::DEL ){
-				$this->setIsDelete();
+				$this->__setIsDelete();
 			}
 			
 			if( $void === DATABASE::INS ){
-				$this->setIsInsert();
+				$this->__setIsInsert();
 			}
 			
 		}
 		
 		
 		$this->__STATEMENT__ = $sql;
-		$this->fix_where();
+		$this->__fix_where();
 		return $this;
 		
 	}
-	
-	public function fix_where(){		
+
+	/**
+	 * fixes the user's where 1 mistake
+	 * 
+	 * usually something that would surface in __compiled_str where
+	 * the user uses WHERE 1 as default when building an sql statement.
+	 * example:
+	 * $sql = "select * from table where 1";
+	 * 
+	 * if( $s == 2 ){
+	 * 		$sql .= " and column = 3";
+	 * }
+	 * 
+	 * etc. WHERE 1 works fine in MySQL, but not in Oracle.
+	 * 
+	 * @param void
+	 * 
+	 * @return void
+	 */	
+
+	public function __fix_where(){		
 		
 		$str = $this->__STATEMENT__;
 		preg_match_all( '/WHERE(\s+)1(\s+)AND/i', $str, $matches );
