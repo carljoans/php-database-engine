@@ -85,10 +85,10 @@ class DATABASE {
 	public static $defaults = array();
 	public static $functions = array(
 		"oracle"=>array(
-			"TO_DATE",
+			"TO_DATE", "SUM",
 		),
 		"mysql"=>array(
-			"DATE_FORMAT",
+			"DATE_FORMAT", "SUM",
 		),
 		"sqlite"=>array(
 		),

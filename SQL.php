@@ -467,7 +467,11 @@ class SQL{
 				$select = implode( ", ", $selectas );
 			}			
 			
-		}			
+		}	
+		
+		if( !$group_BY ){
+			$this->__SELECTADD_GROUPBY__ = array();
+		}	
 		
 		if( count( $this->__JOINWHERE__ ) > 0 ){
 			
@@ -525,7 +529,7 @@ class SQL{
 							$column = strtolower(str_replace( $DBOVAR::TF( $this->__TABLE__ ).".", "", $column )); 
 							foreach( $this->__AVAILABLE_COLUMNS__ as $col ){
 								$col = strtolower($col);
-								if( $col == $column || DATABASE::startswith( $column, $DBOVAR::NF( $col )." " ) ){
+								if( $col == $column || DATABASE::startswith( $column, $DBOVAR::NF( $col )." " ) || ( $this->__is_function( $column ) && preg_match( '/'.$DBOVAR::NF( $col ).'/i', $column ) ) ){
 									$colcount++;
 								}
 							}
@@ -536,7 +540,7 @@ class SQL{
 						$column = strtolower(str_replace( $DBOVAR::TF( $this->__TABLE__ ).".", "", $column )); 
 						foreach( $this->__AVAILABLE_COLUMNS__ as $col ){
 							$col = strtolower($col);
-							if( $col == $column || DATABASE::startswith( $column, $DBOVAR::NF( $col )." " ) ){
+							if( $col == $column || DATABASE::startswith( $column, $DBOVAR::NF( $col )." " ) || ( $this->__is_function( $column ) && preg_match( '/'.$DBOVAR::NF( $col ).'/i', $column ) ) ){
 								$colcount++;
 							}
 						}
@@ -944,7 +948,7 @@ class SQL{
 			
 			foreach( $replacetxt as $bindname=>$bindbasename ){
 				unset( $values[$bindname] );
-				$str_sql = str_replace( $bindname, $bindbasename, $str_sql );
+				$str_sql = str_replace( $bindname, ":".$bindbasename, $str_sql );
 			}
 			
 			$values = array_merge( $subvaluestxt, $valuestxt );
