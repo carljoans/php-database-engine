@@ -1,4 +1,4 @@
-<?
+<?php
 /*
  * PHP Database Engine
  *
@@ -60,27 +60,27 @@ class DATABASE {
 	const DAYFULL = 10;
 	const WEEKS = 11;
 	
-	public static $ERRORLOGCALLBACK = null;
-	public static $TABLENAMECALLBACK = null;
-	public static $CASESENSITIVE = false;
-	public static $PREFIX = "";
-	public static $USE_PDO = true;
+	public static $errorlogcallback = null;
+	public static $tablenamecallback = null;
+	public static $casesensitive = false;
+	public static $prefix = "";
+	public static $use_pdo = true;
 	public static $ob = array();
 	public static $transaction = array();
 	public static $dbtype = "mysql";
 	public static $make_table = array();
 	
-	public static $HOST = "";
-	public static $DB = "";
-	public static $USER = "";
-	public static $PASSWORD = "";
-	public static $PORT = "";
+	public static $host = "";
+	public static $db = "";
+	public static $user = "";
+	public static $password = "";
+	public static $port = "";
 	
-	public static $TMP = "";
+	public static $tmp = "";
 	
-	public static $ERROR = "";
-	public static $LASTQUERY = array();
-	public static $LASTQUERYTIME = array();
+	public static $error = "";
+	public static $lastquery = array();
+	public static $lastquerytime = array();
 	
 	public static $defaults = array();
 	public static $functions = array(
@@ -121,6 +121,10 @@ class DATABASE {
 			$config['errorlogcallback'] = ( isset($config['errorlogcallback']) )? $config['errorlogcallback'] : null ;
 			$config['tablenamecallback'] = ( isset($config['tablenamecallback']) )? $config['tablenamecallback'] : null ;
 			$config['prefix'] = ( isset($config['prefix']) )? $config['prefix'] : null ;
+			$config['use_descriptor'] = ( isset($config['use_descriptor']) )? $config['use_descriptor'] : false ;
+			$config['tablecolumns'] = ( isset($config['tablecolumns']) )? $config['tablecolumns'] : array() ;
+			$config['dateformat'] = ( isset($config['dateformat']) )? $config['dateformat'] : array() ;
+			
 			self::$databases[$name] = $config;
 			self::load_class($name);
 		}
@@ -159,16 +163,16 @@ class DATABASE {
 	public static function initDB(){
 		
 		self::$dbtype = self::$databases[self::$database_in_use]['type'];
-		self::$HOST = self::$databases[self::$database_in_use]['host'];
-		self::$DB = self::$databases[self::$database_in_use]['db'];
-		self::$USER = self::$databases[self::$database_in_use]['user'];
-		self::$PASSWORD = self::$databases[self::$database_in_use]['password'];
-		self::$USE_PDO = self::$databases[self::$database_in_use]['usePDO'];
-		self::$CASESENSITIVE = self::$databases[self::$database_in_use]['casesensitive'];
-		self::$TMP = self::$databases[self::$database_in_use]['tmp'];
-		self::$ERRORLOGCALLBACK = self::$databases[self::$database_in_use]['errorlogcallback'];
-		self::$TABLENAMECALLBACK = self::$databases[self::$database_in_use]['tablenamecallback'];
-		self::$PREFIX = self::$databases[self::$database_in_use]['prefix'];
+		self::$host = self::$databases[self::$database_in_use]['host'];
+		self::$db = self::$databases[self::$database_in_use]['db'];
+		self::$user = self::$databases[self::$database_in_use]['user'];
+		self::$password = self::$databases[self::$database_in_use]['password'];
+		self::$use_pdo = self::$databases[self::$database_in_use]['usePDO'];
+		self::$casesensitive = self::$databases[self::$database_in_use]['casesensitive'];
+		self::$tmp = self::$databases[self::$database_in_use]['tmp'];
+		self::$errorlogcallback = self::$databases[self::$database_in_use]['errorlogcallback'];
+		self::$tablenamecallback = self::$databases[self::$database_in_use]['tablenamecallback'];
+		self::$prefix = self::$databases[self::$database_in_use]['prefix'];
 		
 		self::setob();
 		
@@ -199,12 +203,12 @@ class DATABASE {
 		
 		if( $ob == NULL ){
 			
-			$host = ( $host == "" )? self::$HOST : $host;
-			$db = ( $db == "" )? self::$DB : $db;
-			$user = ( $user == "" )? self::$USER : $user;
-			$password = ( $password == "" )? self::$PASSWORD : $password;
+			$host = ( $host == "" )? self::$host : $host;
+			$db = ( $db == "" )? self::$db : $db;
+			$user = ( $user == "" )? self::$user : $user;
+			$password = ( $password == "" )? self::$password : $password;
 			
-			if( self::$USE_PDO ){
+			if( self::$use_pdo ){
 				try {
 					
 					if( self::$dbtype == self::MYSQL ){
@@ -274,7 +278,7 @@ class DATABASE {
 		$ob = self::connect( $host, $db, $user, $password );
 		$return = true;
 		
-		if( self::$USE_PDO ){
+		if( self::$use_pdo ){
 			if( $ob instanceof PDOException ){
 				$return = false;
 			}
@@ -296,8 +300,8 @@ class DATABASE {
 	}
 	
 	public static function log_error($class){
-		if( self::$ERRORLOGCALLBACK != null ){
-			call_user_func( self::$ERRORLOGCALLBACK, __CLASS__ );
+		if( self::$errorlogcallback != null ){
+			call_user_func( self::$errorlogcallback, __CLASS__ );
 		}
 	}
 	
@@ -315,14 +319,14 @@ class DATABASE {
 		$backtrace = ob_get_contents(); 
 		ob_end_clean();
 		
-		self::$ERROR = array( $backtrace );
+		self::$error = array( $backtrace );
 		self::log_error(__CLASS__);
 		
 	}
 	
 	public static function pdo_debug( $e ){
 		
-		self::$ERROR = $e;
+		self::$error = $e;
 		self::log_error(__CLASS__);
 		
 	}
@@ -375,7 +379,7 @@ class DATABASE {
 	
 	public static function lastInsertId(){
 		
-		if( self::$USE_PDO ){
+		if( self::$use_pdo ){
 			if( self::$dbtype == self::MYSQL || self::$dbtype == self::SQLITE ){
 				return self::$ob[self::$database_in_use]->lastInsertId();
 			}
@@ -390,19 +394,32 @@ class DATABASE {
 		$query = self::sql();
 		$query->__compiled_str( $str_sql );
 		if( $query->__isSelect() ){
-			$str_sql = "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtblcount";
+			$str_sql = str_replace( chr(10), "__n__l", $str_sql );
+			
+			preg_match( '/select(\s+)(.*?)(\s+)from(\s+)/i', $str_sql, $match );
+			
+			if( isset( $match[0] ) ){
+				$count = 1;
+				$str_sql = str_replace( $match[0], "SELECT COUNT( * ) AS rowcount FROM ", $str_sql, $count );
+			}else{
+				//IF all else fails fails do the impractical.
+				$str_sql = "SELECT COUNT( * ) AS rowcount FROM ( ".$str_sql." ) DBtblcount";
+			}
+			
+			$str_sql = str_replace( "__n__l", chr(10), $str_sql );
 			$count = self::query( $str_sql, self::FET, $bindings );
 			$rowcount = $count->rowcount;
+			
 		}
 		return $rowcount;
 	}
     
     public static function query( $str_sql, $expect=1, $transaction=NULL, $ob=NULL ) {
 		
-		self::$LASTQUERYTIME[md5($str_sql)]["start"] = microtime(true);
+		self::$lastquerytime[md5($str_sql)]["start"] = microtime(true);
 		
 		self::use_database();
-		self::$ERROR = "";
+		self::$error = "";
 		
 		if( !self::connection() ){
 			return array();
@@ -414,7 +431,7 @@ class DATABASE {
 			self::$ob[self::$database_in_use] = $ob;
 		}
 		
-		if( self::$USE_PDO ){	
+		if( self::$use_pdo ){	
 			
 			try {
 				
@@ -434,16 +451,16 @@ class DATABASE {
 						
 						if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
 							$status = ( $expect===self::DEL || $expect===self::UPD )? $result : true ;
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, $result->rowCount(), self::NUM, $status );
 						}else if( $expect===self::PUT || $expect===self::INS ){
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, self::lastInsertId(), self::INS, true );
 						}else if( $expect===self::FET ){
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( $result->fetch(), 1, self::FET, true );
 						}else{
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							if( self::$dbtype != self::SQLITE && self::$dbtype != self::ORACLE ){
 								$rowcount = $result->rowCount();
 							}
@@ -474,19 +491,19 @@ class DATABASE {
 					if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
 						$status = ( $expect===self::DEL || $expect===self::UPD )? $result : true ;
-						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( null, $result->rowCount(), self::NUM, $status );
 					}else if( $expect===self::PUT || $expect===self::INS ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
-						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( null, self::lastInsertId(), self::INS, true );
 					}else if( $expect===self::FET ){
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
-						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 						return new RESULTSET( $result->fetch(), 1, self::FET, true );
 					}else{
 						$result = self::$ob[self::$database_in_use]->query( $str_sql );
-						self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+						self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 						if( self::$dbtype != self::SQLITE && self::$dbtype != self::ORACLE ){
 							$rowcount = $result->rowCount();
 						}		
@@ -515,31 +532,48 @@ class DATABASE {
 					
 					if( $expect===self::ALL ){
 						$rowcount = self::getrowcount( $str_sql, $transaction );
-					}
+					}				 
 					
 					$parse = oci_parse( self::$ob[self::$database_in_use], $str_sql );
 					
+					$clobs = array();
+					
 					foreach( $transaction as $bindkey=>$bindvalue ){
-						oci_bind_by_name( $parse, $bindkey, $transaction[$bindkey]);
+						if( self::startswith( $bindkey, "clob:" ) ){
+							$clob_descriptor = oci_new_descriptor(self::$ob[self::$database_in_use], OCI_DTYPE_LOB);
+							oci_bind_by_name( $parse, $bindkey, $clob_descriptor, -1, SQLT_CLOB );
+							$clob_descriptor->writeTemporary($transaction[$bindkey], OCI_TEMP_CLOB);
+							$clobs[$bindkey] = $clob_descriptor;
+						}else{
+							oci_bind_by_name( $parse, $bindkey, $transaction[$bindkey] );
+						}
 					}
 					
-					$execute = ( isset(self::$transaction[self::$database_in_use]) && self::$transaction[self::$database_in_use] )? oci_execute( $parse, OCI_NO_AUTO_COMMIT ) : oci_execute($parse) ;		
+					$execute = ( isset(self::$transaction[self::$database_in_use]) && self::$transaction[self::$database_in_use] )? oci_execute( $parse, OCI_NO_AUTO_COMMIT ) : ( !empty($clobs) )? oci_execute( $parse, OCI_DEFAULT ) : oci_execute($parse)  ;		
 					
 					if( $execute ){
 						
 						if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, oci_num_rows($parse), self::NUM, true, true );
 						}else if( $expect===self::PUT || $expect===self::INS ){
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							
+							if( !empty($clobs) ){
+								foreach( $clobs as $bindkey=>$bindvalue ){
+									$x = oci_free_descriptor( $clobs[$bindkey] );
+								}
+								oci_commit(self::$ob[self::$database_in_use]);
+							}
+							
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, self::lastInsertId(), self::INS, true, true );
 						}else if( $expect===self::FET ){
 							$result = oci_fetch_array( $parse );
 							oci_free_statement($parse);
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( $result, 1, self::FET, true, true );
 						}else{
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( $parse, $rowcount, self::ALL, true, true );
 						}
 						
@@ -588,18 +622,18 @@ class DATABASE {
 					if( $execute ){
 						
 						if( $expect===self::DEL || $expect===self::UPD || $expect===self::NUM ){
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, oci_num_rows($parse), self::NUM, true, true );
 						}else if( $expect===self::PUT || $expect===self::INS ){
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( null, self::lastInsertId(), self::INS, true, true );
 						}else if( $expect===self::FET ){
 							$result = oci_fetch_array( $parse );
 							oci_free_statement($parse);
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( $result, 1, self::FET, true, true );
 						}else{
-							self::$LASTQUERYTIME[md5($str_sql)]["end"] = microtime(true);
+							self::$lastquerytime[md5($str_sql)]["end"] = microtime(true);
 							return new RESULTSET( $parse, $rowcount, self::ALL, true, true );
 						}
 						
@@ -666,7 +700,7 @@ class DATABASE {
 	 * */
 
 	public static function TF($name) {
-		if( self::$TABLENAMECALLBACK != null ){
+		if( self::$tablenamecallback != null ){
 			
 			$names = array($name);
 			
@@ -674,7 +708,7 @@ class DATABASE {
 				$names = explode(".", $name);
 			}			
 		
-			$names[0] = call_user_func( self::$TABLENAMECALLBACK, $names[0] );
+			$names[0] = call_user_func( self::$tablenamecallback, $names[0] );
 			$name = implode(".", $names);
 			
 		}		
@@ -701,7 +735,7 @@ class DATABASE {
 		}
 		
 		self::use_database();
-		if( self::$CASESENSITIVE || in_array( strtoupper($name), self::$reserved[self::$databases[self::$database_in_use]['type']] ) ){
+		if( self::$casesensitive || in_array( strtoupper($name), self::$reserved[self::$databases[self::$database_in_use]['type']] ) ){
 			
 			if( self::$dbtype == self::MYSQL ){
 				$name = "`".$name."`";
@@ -721,14 +755,27 @@ class DATABASE {
 		
 	}
 	
+	public static function rename_bindname( $name ){
+		
+		self::use_database();
+		if( in_array( strtoupper($name), self::$reserved[self::$databases[self::$database_in_use]['type']] ) ){
+			
+			$name .= "_bn";
+			
+		}
+		
+		return $name;
+		
+	}
+	
 	private static function nameformat( $name, $table=false, $max=false, $clobtochar=false ) {	
 	
 		self::use_database();
 		$name = str_replace( array( "`", '"' ), "", trim( $name ) );		
 		
 		if( $table ){
-			if( !self::startswith( $name, self::$PREFIX ) ){
-				$name = self::$PREFIX.$name;
+			if( !self::startswith( $name, self::$prefix ) ){
+				$name = self::$prefix.$name;
 			}
 			$name = self::quote_name( $name );
 		}else if( $max ){
@@ -764,13 +811,13 @@ class DATABASE {
 			
 			$week -= 1;
 			
-			return " TO_CHAR(TRUNC( ".$fill.", 'DAY' ), '".CORE::$conf['general']['dateFormat2']."')  || ' - ' || TO_CHAR(TRUNC( ".$fill.", 'DAY' )+".$week.", '".CORE::$conf['general']['dateFormat2']."') ";
+			return " TO_CHAR(TRUNC( ".$fill.", 'DAY' ), '".self::$databases[self::$database_in_use]['dateformat']."')  || ' - ' || TO_CHAR(TRUNC( ".$fill.", 'DAY' )+".$week.", '".self::$databases[self::$database_in_use]['dateformat']."') ";
 			
 		}
 		
 		if( self::$dbtype == self::ORACLE ){
 			
-			return " concat( DATE_FORMAT(from_days(to_days(".$fill.")-dayofweek(".$fill.")+1), '".CORE::$conf['general']['dateFormat2']."'), ' - ', DATE_FORMAT(from_days(to_days(".$fill.")-dayofweek(".$fill.")+".$week."), '".CORE::$conf['general']['dateFormat2']."') ) ";
+			return " concat( DATE_FORMAT(from_days(to_days(".$fill.")-dayofweek(".$fill.")+1), '".self::$databases[self::$database_in_use]['dateformat']."'), ' - ', DATE_FORMAT(from_days(to_days(".$fill.")-dayofweek(".$fill.")+".$week."), '".self::$databases[self::$database_in_use]['dateformat']."') ) ";
 			
 		}
 		
@@ -1111,7 +1158,7 @@ class DATABASE {
 	// MySQL IFNULL(Table.column,retunvalue)
 	// usage DBO::ifnull()."(Table.column,retunvalue)"
 	
-	public static function ifnull($NOT=""){
+	public static function ifnull($not=""){
 		
 		self::use_database();
 		if( self::$dbtype == self::MYSQL || self::$dbtype == self::SQLITE ){
@@ -1124,23 +1171,23 @@ class DATABASE {
 		
 	}
 	
-	public static function REGEXP( $column, $regexp, $NOT=false, $casesensitive=false ){
+	public static function REGEXP( $column, $regexp, $not=false, $casesensitive=false ){
 		
 		self::use_database();
 		// TODO casesensitive
 		
-		$NOT = ( $NOT )? "NOT" : "" ;
+		$not = ( $not )? "NOT" : "" ;
 		
 		if( self::$dbtype == self::SQLITE ){
 			return ""; ### todo
 		}
 		
 		if( self::$dbtype == self::MYSQL ){
-			return "".$column." ".$NOT." REGEXP '".$regexp."'";
+			return "".$column." ".$not." REGEXP '".$regexp."'";
 		}
 		
 		if( self::$dbtype == self::ORACLE ){
-			return "".$NOT." REGEXP_LIKE ( ".$column.", '".$regexp."' )";
+			return "".$not." REGEXP_LIKE ( ".$column.", '".$regexp."' )";
 		}
 		
 	}
@@ -1394,10 +1441,16 @@ class DATABASE {
 		
 		if( self::$dbtype == self::ORACLE ){
 			
+			$where = "( cols.table_name = '".self::TF($table)."' OR cols.table_name = '".self::TF(strtolower($table))."' OR cols.table_name = '".self::TF(strtoupper($table))."' )";
+			
+			if( !self::$casesensitive ){
+				$where = "cols.table_name = '".self::TF(strtoupper($table))."'";
+			}
+			
 			$sql = "SELECT cols.column_name as Field
 				FROM all_tab_columns cols
-				WHERE ( cols.table_name = '".self::TF($table)."' OR cols.table_name = '".self::TF(strtolower($table))."' OR cols.table_name = '".self::TF(strtoupper($table))."' )";
-			
+				WHERE ".$where."";
+
 		}
 		
 		$tbl = self::query( $sql, self::VOID );
@@ -1433,14 +1486,22 @@ class DATABASE {
 		
 		if( self::$dbtype == self::ORACLE ){
 			
+			
+			$where = "( cols.table_name = '".self::TF($table)."' OR cols.table_name = '".self::TF(strtolower($table))."' OR cols.table_name = '".self::TF(strtoupper($table))."' )";
+			
+			if( !self::$casesensitive ){
+				$where = "cols.table_name = '".self::TF(strtoupper($table))."'";
+			}
+			
 			$sql = "SELECT cols.column_name AS Field, cols.position, cons.status, cons.owner
 				FROM all_constraints cons, all_cons_columns cols
-				WHERE ( cols.table_name = '".self::TF($table)."' OR cols.table_name = '".self::TF(strtolower($table))."' OR cols.table_name = '".self::TF(strtoupper($table))."' )
+				WHERE ".$where."
 				AND cons.constraint_type = 'P'
 				AND cons.constraint_name = cols.constraint_name
 				AND cons.owner = cols.owner
 				ORDER BY cols.position";
 			
+				
 		}
 		
 		$tbl = self::query( $sql, self::VOID );
@@ -1483,13 +1544,13 @@ class DATABASE {
 		
 		if( $tostring ){
 			ob_start();
-			print_r( self::$ERROR );
+			print_r( self::$error );
 			$html = ob_get_contents(); 
 			ob_end_clean();
 			return $html;
 		}
 		
-		return self::$ERROR;
+		return self::$error;
 		
 	}
 	
@@ -1502,7 +1563,7 @@ class DATABASE {
 			$query = str_replace( $key, "'".$params[$key]."'", $query );
 		}
 
-		self::$LASTQUERY[$id] = $query;
+		self::$lastquery[$id] = $query;
 		
 	}
 	
@@ -1524,7 +1585,7 @@ class DATABASE {
 		}
 		if($sql->__isInsert()){
 			$return = self::query( $sql->__prepared(), self::INS, $sql->__values() );
-			return ( self::$dbtype == self::ORACLE )? $sql->__INSERTID__ : $return;
+			return ( self::$dbtype == self::ORACLE )? $sql->__insertid__ : $return;
 		}
 	}
 	
@@ -1545,7 +1606,7 @@ class DATABASE {
 		}
 		if($sql->__isInsert()){
 			$return = self::query( $sql->__output_str(), self::INS );
-			return ( self::$dbtype == self::ORACLE )? $sql->__INSERTID__ : $return;
+			return ( self::$dbtype == self::ORACLE )? $sql->__insertid__ : $return;
 		}
 	}
 	

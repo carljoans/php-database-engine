@@ -38,12 +38,17 @@ class RESULTSET extends ArrayObject {
 		$this->___status = $status;
 		$this->___is_oci_ = $is_oci_;
 		
-		if( $type===DATABASE::FET && $n > 0 ){
+		if( $type===DATABASE::FET ){
 			
-			foreach( $result as $name=>$value ){
-				$name = strtolower($name);
-				$this[$name] = $this->getfieldvalue( $value );
-			}
+			if( !empty($result) ){
+				foreach( $result as $name=>$value ){
+					$name = strtolower($name);
+					$this[$name] = $this->getfieldvalue( $value );
+				}
+			}else{
+				$this->___result = $result;
+				$this->___n = 0;
+			}			
 			
 		}elseif( $type===DATABASE::ALL && $n > 0 ){
 			$this->___result = $result;
