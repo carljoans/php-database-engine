@@ -834,6 +834,8 @@ class SQL{
 			$this->__fix_where();
 			$this->__check_string_literal();
 		}
+		
+		return $this;
 			
 	}
 

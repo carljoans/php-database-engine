@@ -119,11 +119,12 @@ class DATABASE {
 			$config['casesensitive'] = ( isset($config['casesensitive']) )? $config['casesensitive'] : true ;
 			$config['tmp'] = ( isset($config['tmp']) )? $config['tmp'] : "/tmp" ;
 			$config['errorlogcallback'] = ( isset($config['errorlogcallback']) )? $config['errorlogcallback'] : null ;
+			$config['querylogcallback'] = ( isset($config['querylogcallback']) )? $config['querylogcallback'] : null ;
 			$config['tablenamecallback'] = ( isset($config['tablenamecallback']) )? $config['tablenamecallback'] : null ;
 			$config['prefix'] = ( isset($config['prefix']) )? $config['prefix'] : null ;
 			$config['use_descriptor'] = ( isset($config['use_descriptor']) )? $config['use_descriptor'] : false ;
 			$config['tablecolumns'] = ( isset($config['tablecolumns']) )? $config['tablecolumns'] : array() ;
-			$config['dateformat'] = ( isset($config['dateformat']) )? $config['dateformat'] : array() ;
+			$config['dateformat'] = ( isset($config['dateformat']) )? $config['dateformat'] : "%d-%m-%Y" ;
 			
 			self::$databases[$name] = $config;
 			self::load_class($name);
