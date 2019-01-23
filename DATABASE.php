@@ -1612,7 +1612,6 @@ class DATABASE {
 	}
 
 	public static function count( $sql, $countWhat = false, $whereAddOnly = false, $str = false ){
-
 		$sql->__count( $countWhat, $whereAddOnly, $str );
 		if( !$str ){
 			$sql = self::query( $sql->__prepared(), self::FET, $sql->__values() );
@@ -1620,7 +1619,6 @@ class DATABASE {
 			$sql = self::query( $sql->__prepared(), self::FET );
 		}
 		return $sql->rowcount;
-
 	}
 
 	public static function startswith( $str, $prefix ){

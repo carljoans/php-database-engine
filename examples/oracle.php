@@ -19,7 +19,7 @@ DATABASE::register_database( "ORACLEDB", $config );
 $users = ORACLEDB::sql("users");
 $blog = ORACLEDB::sql("blog")->__selectFrom();
 
-$blog_links = array( "userid"=>"users:id"  ); // create links between the tables
+$blog_links = array( "userid"=>"users:id" ); // create links between the tables
 $blog->__createLink($blog_links);
 $blog->__joinAdd($users);  // using the created links, create a join clause
 $blog->__selectAs($users,"u_%s");  // prefix the users table columns with "u_" to avoid ambiguous column names

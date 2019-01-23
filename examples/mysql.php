@@ -4,7 +4,7 @@ include( dirname(dirname(__FILE__))."/DATABASE.php" );
 $config = array();
 $config['type'] = DATABASE::MYSQL;
 $config['host'] = "localhost";
-$config['db'] = "theworldwarriormc"; #database name
+$config['db'] = "databasename"; #database name
 $config['user'] = "root";
 $config['password'] = "dbpassword";
 $config['casesensitive'] = true; #optional - default true

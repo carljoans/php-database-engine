@@ -24,7 +24,7 @@
  * @package PHP Database Engine
  */
 
-class SQL{
+class SQL {
 
 	public $__table__ = "";
 	public $__is_select__ = false;

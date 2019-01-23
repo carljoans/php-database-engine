@@ -37,47 +37,47 @@ class RESULTSET extends ArrayObject {
 		$this->___status = $status;
 		$this->___is_oci_ = $is_oci_;
 
-		if( $type===DATABASE::FET ){
-			if( !empty($result) ){
-				foreach( $result as $name=>$value ){
+		if( $type===DATABASE::FET ) {
+			if( !empty($result) ) {
+				foreach( $result as $name=>$value ) {
 					$name = strtolower($name);
 					$this[$name] = $this->getfieldvalue( $value );
 				}
-			}else{
+			} else {
 				$this->___result = $result;
 				$this->___n = 0;
 			}
-		}elseif( $type===DATABASE::ALL && $n > 0 ){
+		} elseif( $type===DATABASE::ALL && $n > 0 ) {
 			$this->___result = $result;
 			$this->___n = $n;
 		}
   }
 
-  public function count(){
+  public function count() {
 		return $this->___n;
 	}
 
-  public function insertid(){
+  public function insertid() {
 		return $this->___n;
 	}
 
-	private function getfieldvalue( $value ){
+	private function getfieldvalue( $value ) {
 		$value = is_resource( $value ) ? stream_get_contents( $value ) : ( is_object($value) && get_class($value) == 'OCI-Lob'  ? $value->read($value->size()) : $value ) ;
 		return $value;
 	}
 
-  public function fetch( $limit=-1 ){
+  public function fetch( $limit=-1 ) {
   	if( $this->___n > 0 ){
   		$this->___limit++;
-  		if( $this->___limit == $limit ){
+  		if( $this->___limit == $limit ) {
   			$this->___limit = -1;
   			return false;
   		}
 
-  		if( !$this->___is_oci_ ){
-  			foreach( $this->___result as $result ){
-  				foreach( $result as $name=>$value ){
-  					if( !is_int( $name ) ){
+  		if( !$this->___is_oci_ ) {
+  			foreach( $this->___result as $result ) {
+  				foreach( $result as $name=>$value ) {
+  					if( !is_int( $name ) ) {
   						$name = strtolower($name);
   						$this[$name] = $this->getfieldvalue( $value );
   					}
@@ -86,9 +86,9 @@ class RESULTSET extends ArrayObject {
   			}
   			return false;
   		}else{
-  			while( $result = oci_fetch_array( $this->___result ) ){
-  				foreach( $result as $name=>$value ){
-  					if( !is_int( $name ) ){
+  			while( $result = oci_fetch_array( $this->___result ) ) {
+  				foreach( $result as $name=>$value ) {
+  					if( !is_int( $name ) ) {
   						$name = strtolower($name);
   						$this[$name] = $this->getfieldvalue( $value );
   					}
@@ -101,17 +101,17 @@ class RESULTSET extends ArrayObject {
   	}
   }
 
-  function __set( $name, $value ){
+  function __set( $name, $value ) {
 		$name = strtolower($name);
 		$array = array();
-		foreach( $this as $thisname=>$thisvalue ){
+		foreach( $this as $thisname=>$thisvalue ) {
 			$array[$thisname] = $thisvalue;
 		}
 		$array[$name] = $value;
 		$this->exchangeArray($array);
 	}
 
-	function __get( $name ){
+	function __get( $name ) {
 		return $this->offsetGet($name);
 	}
 
@@ -134,7 +134,7 @@ class RESULTSET extends ArrayObject {
 
   function offsetGet($name) {
 		$name = strtolower($name);
-		if( parent::offsetExists($name) ){
+		if( parent::offsetExists($name) ) {
 			return parent::offsetGet($name);
 		}
     return NULL;

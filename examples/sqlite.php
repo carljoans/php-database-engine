@@ -61,7 +61,7 @@ $select = SQLITEDB::sql()
 
 $data = SQLITEDB::exec_statement( $select );
 #fetch 1 row
-print "=======[ 1 ]<br>";
+print "=======[1]<br>";
 
 while( $data->fetch() ){
 	print $data->id.": ".$data->username."<br>";
