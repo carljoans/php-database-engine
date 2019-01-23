@@ -32,37 +32,37 @@ SQLITEDB::exec_statement( $create );
 ### as opposed to one with value binding when using exec_prepared
 
 $insert = SQLITEDB::sql()
-	->__insertInto("users")	// needs a table name first before any other parts of the statement.
-	->password("pass123")	// set password = 'pass123'
-	->username("bobby");	// set username = 'bobby'
+  ->__insertInto("users")  // needs a table name first before any other parts of the statement.
+  ->password("pass123")  // set password = 'pass123'
+  ->username("bobby");  // set username = 'bobby'
 
 $result = SQLITEDB::exec_prepared( $insert );
 print $result->insertid().": bobby<br>";
 
 $insert = SQLITEDB::sql()
-	->__insertInto("users")	// needs a table name first before any other parts of the statement.
-	->password("pass123")	// set password = 'pass123'
-	->username("tommy");	// set username = 'tommy'
+  ->__insertInto("users")  // needs a table name first before any other parts of the statement.
+  ->password("pass123")  // set password = 'pass123'
+  ->username("tommy");  // set username = 'tommy'
 
 $result = SQLITEDB::exec_statement( $insert );
 print $result->insertid().": tommy<br>";
 
 $insert = SQLITEDB::sql()
-	->__insertInto("users")	// needs a table name first before any other parts of the statement.
-	->password("pass123")	// set password = 'pass123'
-	->username("cathy");	// set username = 'cathy'
+  ->__insertInto("users")  // needs a table name first before any other parts of the statement.
+  ->password("pass123")  // set password = 'pass123'
+  ->username("cathy");  // set username = 'cathy'
 
 $result = SQLITEDB::exec_prepared( $insert );
 print $result->insertid().": cathy<br>";
 
 $select = SQLITEDB::sql()
-	->__selectFrom("users")	// needs a table name first before any other parts of the statement.
-	->orderBy("id DESC");		// the order of ORDER BY, WHERE, GROUP BY after selectFrom does not matter
+  ->__selectFrom("users")  // needs a table name first before any other parts of the statement.
+  ->orderBy("id DESC");    // the order of ORDER BY, WHERE, GROUP BY after selectFrom does not matter
 
 $data = SQLITEDB::exec_statement( $select );
 #fetch 1 row
 print "=======[1]<br>";
 
 while( $data->fetch() ){
-	print $data->id.": ".$data->username."<br>";
+  print $data->id.": ".$data->username."<br>";
 }
