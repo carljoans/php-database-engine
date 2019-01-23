@@ -14,7 +14,7 @@ $config['logcaller'] = null; #optional - default null. the function used to hand
 ## eg. "handler" or "Myclass::handler" by default no error output.
 $config['prefix'] = ""; #optional - default null. the prefix used for all tables.
 
-DATABASE::register_database( "ORACLEDB",  $config );
+DATABASE::register_database( "ORACLEDB", $config );
 
 $users = ORACLEDB::sql("users");
 $blog = ORACLEDB::sql("blog")->__selectFrom();
@@ -58,19 +58,19 @@ $update = ORACLEDB::sql()
 	->__updateSet("users")	// needs a table name first before any other parts of the statement.
 	->id(4)					// where id = 1, if primary is assigned it will use as where, else where() must be used explicitly.
 	->password("pass123");	// set password = 'pass123'
-	
+
 $isupdated = ORACLEDB::exec_prepared( $update );
 
 $insert = ORACLEDB::sql()
 	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("bobby");	// set username = 'bobby'
-	
+
 $insert_id = ORACLEDB::exec_prepared( $insert );
 
 $delete = ORACLEDB::sql()
 	->__deleteFrom("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// where password = 'pass123'
 	->username("bobby");	// where username = 'bobby'
-	
+
 $isdeleted = ORACLEDB::exec_prepared( $delete );

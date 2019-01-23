@@ -14,7 +14,7 @@ $config['logcaller'] = null; #optional - default null. the function used to hand
 ## eg. "handler" or "Myclass::handler" by default no error output.
 $config['prefix'] = ""; #optional - default null. the prefix used for all tables.
 
-DATABASE::register_database( "MYSQLDB",  $config );
+DATABASE::register_database( "MYSQLDB", $config );
 
 $users = MYSQLDB::sql("users");
 $blog = MYSQLDB::sql("blog")->__selectFrom();
@@ -58,19 +58,19 @@ $update = MYSQLDB::sql()
 	->__updateSet("users")	// needs a table name first before any other parts of the statement.
 	->id(4)					// where id = 1, if primary is assigned it will use as where, else where() must be used explicitly.
 	->password("pass123");	// set password = 'pass123'
-	
+
 $isupdated = MYSQLDB::exec_prepared( $update );
 
 $insert = MYSQLDB::sql()
 	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("bobby");	// set username = 'bobby'
-	
+
 $insert_id = MYSQLDB::exec_prepared( $insert );
 
 $delete = MYSQLDB::sql()
 	->__deleteFrom("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// where password = 'pass123'
 	->username("bobby");	// where username = 'bobby'
-	
+
 $isdeleted = MYSQLDB::exec_prepared( $delete );

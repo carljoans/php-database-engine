@@ -14,7 +14,7 @@ $config['logcaller'] = null; #optional - default null. the function used to hand
 ## eg. "handler" or "Myclass::handler" by default no error output.
 $config['prefix'] = ""; #optional - default null. the prefix used for all tables.
 
-DATABASE::register_database( "SQLITEDB",  $config );
+DATABASE::register_database( "SQLITEDB", $config );
 
 $create_table = "CREATE TABLE IF NOT EXISTS users (
   id integer NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -27,15 +27,15 @@ $create_table = "CREATE TABLE IF NOT EXISTS users (
 );";
 
 $create = SQLITEDB::sql()->__compiled_str( $create_table, DATABASE::VOID );
-SQLITEDB::exec_statement( $create );  
-### exec_statement executes the final sql string, 
+SQLITEDB::exec_statement( $create );
+### exec_statement executes the final sql string,
 ### as opposed to one with value binding when using exec_prepared
 
 $insert = SQLITEDB::sql()
 	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("bobby");	// set username = 'bobby'
-	
+
 $result = SQLITEDB::exec_prepared( $insert );
 print $result->insertid().": bobby<br>";
 
@@ -43,7 +43,7 @@ $insert = SQLITEDB::sql()
 	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("tommy");	// set username = 'tommy'
-	
+
 $result = SQLITEDB::exec_statement( $insert );
 print $result->insertid().": tommy<br>";
 
@@ -51,7 +51,7 @@ $insert = SQLITEDB::sql()
 	->__insertInto("users")	// needs a table name first before any other parts of the statement.
 	->password("pass123")	// set password = 'pass123'
 	->username("cathy");	// set username = 'cathy'
-	
+
 $result = SQLITEDB::exec_prepared( $insert );
 print $result->insertid().": cathy<br>";
 
